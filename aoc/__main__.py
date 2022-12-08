@@ -4,9 +4,32 @@ import argparse
 import enum
 import importlib.util
 import sys
+import warnings
 from pathlib import Path
 
+from typing_extensions import TypeAlias
+
 __parent__ = Path(__file__).resolve().parent
+
+Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
+
+
+def make_tree(root: Path, tree: Tree) -> None:
+    match tree:
+        case str():
+            root.mkdir(parents=True, exist_ok=True)
+            (root / tree).touch()
+
+        case list():
+            for subtree in tree:
+                make_tree(root, subtree)
+
+        case dict():
+            for dirname, subtree in tree.items():
+                make_tree(root / dirname, subtree)
+
+        case _:
+            raise TypeError(type(tree))
 
 
 class Part(str, enum.Enum):
@@ -21,20 +44,58 @@ class Case(str, enum.Enum):
 
 def prepare_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--day", type=int, required=True)
-    parser.add_argument("-p", "--part", type=str, choices=["one", "two"], required=True)
-    parser.add_argument(
+
+    subparsers = parser.add_subparsers()
+
+    subparser = subparsers.add_parser("solve", help="Solve puzzle per day")
+    subparser.add_argument("-d", "--day", type=int, required=True)
+    subparser.add_argument(
+        "-p", "--part", type=str, choices=["one", "two"], required=True
+    )
+    subparser.add_argument(
         "-c", "--case", type=str, choices=["test", "task"], required=False, default=None
     )
-    parser.add_argument("-i", "--input", type=str, required=False, default=None)
+    subparser.add_argument("-i", "--input", type=str, required=False, default=None)
+    subparser.set_defaults(handler=solve)
+
+    subparser = subparsers.add_parser("setup", help="Setup directory for daily puzzle")
+    subparser.add_argument("-d", "--day", type=int, required=True)
+    subparser.add_argument("-n", "--name", type=str, required=True)
+    subparser.set_defaults(handler=setup)
 
     return parser
 
 
-def main() -> None:
-    parser = prepare_parser()
-    args = parser.parse_args()
+def setup(args: argparse.Namespace) -> None:
+    name = "_".join(args.name.lower().split())
+    day_dpath = __parent__ / f"day_{args.day}_{name}"
 
+    msg_ph = f"Directory for day {args.day} ({args.name}) was {{}} set up"
+
+    if day_dpath.exists():
+        warnings.warn(msg_ph.format("already"))
+        return
+
+    make_tree(
+        day_dpath,
+        [
+            "parser.py",
+            "__init__.py",
+            {
+                "solution": [
+                    "input.txt",
+                    "test_input.txt",
+                    "one.py",
+                    "two.py",
+                ]
+            },
+        ],
+    )
+
+    print(msg_ph.format("successfully"))
+
+
+def solve(args: argparse.Namespace) -> None:
     day_dpath = next(iter((__parent__.glob(f"day_{args.day}*"))))
 
     spec = importlib.util.spec_from_file_location(
@@ -70,6 +131,12 @@ def main() -> None:
 
     with input_fpath.open() as fin:
         print(solve(fin))
+
+
+def main() -> None:
+    parser = prepare_parser()
+    args = parser.parse_args()
+    args.handler(args)
 
 
 main()
