@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import io
-from pathlib import Path
 import sys
 import unittest
+from pathlib import Path
 from typing import Callable, Generic, TypeVar, cast
 
 from typing_extensions import NamedTuple, Self

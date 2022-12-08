@@ -47,8 +47,6 @@ class FSObject:
     def unprotect(self) -> None:
         self._is_protected = False
 
-
-
     @property
     def root(self) -> Self:
         out = self

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from typing import TextIO
 
 from aoc.day_7_no_space_left_on_device.fs import Dir, FSObject

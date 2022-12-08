@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 import enum
-import re
 import importlib.util
+import re
 import sys
-from typing import TypedDict, cast
 import warnings
 from pathlib import Path
+from typing import TypedDict, cast
 
 from typing_extensions import TypeAlias
 
