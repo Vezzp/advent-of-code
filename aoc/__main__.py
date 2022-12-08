@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import enum
+import re
 import importlib.util
 import sys
+from typing import TypedDict, cast
 import warnings
 from pathlib import Path
 
@@ -11,7 +13,17 @@ from typing_extensions import TypeAlias
 
 __parent__ = Path(__file__).resolve().parent
 
+PUZZLE_NAME_RE = re.compile(
+    r"(?:---)?\s+Day\s+(?P<day>\d+):\s+(?P<name>.+)\s+(?:---)?"
+)
+
+
 Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
+
+
+class ParsedPuzzleName(TypedDict):
+    day: str
+    name: str
 
 
 def make_tree(root: Path, tree: Tree) -> None:
@@ -42,35 +54,17 @@ class Case(str, enum.Enum):
     TASK = "task"
 
 
-def prepare_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
-
-    subparsers = parser.add_subparsers()
-
-    subparser = subparsers.add_parser("solve", help="Solve puzzle per day")
-    subparser.add_argument("-d", "--day", type=int, required=True)
-    subparser.add_argument(
-        "-p", "--part", type=str, choices=["one", "two"], required=True
-    )
-    subparser.add_argument(
-        "-c", "--case", type=str, choices=["test", "task"], required=False, default=None
-    )
-    subparser.add_argument("-i", "--input", type=str, required=False, default=None)
-    subparser.set_defaults(handler=solve)
-
-    subparser = subparsers.add_parser("setup", help="Setup directory for daily puzzle")
-    subparser.add_argument("-d", "--day", type=int, required=True)
-    subparser.add_argument("-n", "--name", type=str, required=True)
-    subparser.set_defaults(handler=setup)
-
-    return parser
-
-
 def setup(args: argparse.Namespace) -> None:
-    name = "_".join(args.name.lower().split())
-    day_dpath = __parent__ / f"day_{args.day}_{name}"
+    if (match := PUZZLE_NAME_RE.match(args.name)) is None:
+        raise RuntimeError()
 
-    msg_ph = f"Directory for day {args.day} ({args.name}) was {{}} set up"
+    parsed_puzzle_name = cast(ParsedPuzzleName, match.groupdict())
+    day = parsed_puzzle_name["day"]
+    name = parsed_puzzle_name["name"]
+
+    day_dpath = __parent__ / f"day_{day}_{name.lower().replace(' ', '_')}"
+
+    msg_ph = f"Directory for day {day} ({name}) was {{}} set up"
 
     if day_dpath.exists():
         warnings.warn(msg_ph.format("already"))
@@ -131,6 +125,35 @@ def solve(args: argparse.Namespace) -> None:
 
     with input_fpath.open() as fin:
         print(solve(fin))
+
+
+def prepare_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+
+    subparsers = parser.add_subparsers()
+
+    subparser = subparsers.add_parser("solve", help="Solve puzzle per day")
+    subparser.add_argument("-d", "--day", type=int, required=True)
+    subparser.add_argument(
+        "-p", "--part", type=str, choices=["one", "two"], required=True
+    )
+    subparser.add_argument(
+        "-c", "--case", type=str, choices=["test", "task"], required=False, default=None
+    )
+    subparser.add_argument("-i", "--input", type=str, required=False, default=None)
+    subparser.set_defaults(handler=solve)
+
+    subparser = subparsers.add_parser("setup", help="Setup directory for daily puzzle")
+    subparser.add_argument(
+        "-n",
+        "--name",
+        type=str,
+        required=True,
+        help="Name of task copy pasted from the web site",
+    )
+    subparser.set_defaults(handler=setup)
+
+    return parser
 
 
 def main() -> None:
