@@ -13,9 +13,7 @@ from typing_extensions import TypeAlias
 
 __parent__ = Path(__file__).resolve().parent
 
-PUZZLE_NAME_RE = re.compile(
-    r"(?:---)?\s+Day\s+(?P<day>\d+):\s+(?P<name>.+)\s+(?:---)?"
-)
+PUZZLE_NAME_RE = re.compile(r"(?:---)?\s+Day\s+(?P<day>\d+):\s+(?P<name>.+)\s+(?:---)?")
 
 
 Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
@@ -77,6 +75,7 @@ def setup(args: argparse.Namespace) -> None:
             "__init__.py",
             {
                 "solution": [
+                    "__init__.py",
                     "input.txt",
                     "test_input.txt",
                     "one.py",
