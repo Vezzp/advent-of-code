@@ -13,7 +13,7 @@ from typing_extensions import TypeAlias
 
 __parent__ = Path(__file__).resolve().parent
 
-PUZZLE_NAME_RE = re.compile(r"(?:---)?\s+Day\s+(?P<day>\d+):\s+(?P<name>.+)\s+(?:---)?")
+PUZZLE_NAME_RE = re.compile(r"(?:---)?\s*Day\s+(?P<day>\d+):\s+(?P<name>.+)\s*(?:---)?")
 
 
 Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
@@ -54,7 +54,9 @@ class Case(str, enum.Enum):
 
 def setup(args: argparse.Namespace) -> None:
     if (match := PUZZLE_NAME_RE.match(args.name)) is None:
-        raise RuntimeError()
+        raise RuntimeError(
+            f"Puzzle name '{args.name}' does not match {PUZZLE_NAME_RE.pattern}"
+        )
 
     parsed_puzzle_name = cast(ParsedPuzzleName, match.groupdict())
     day = parsed_puzzle_name["day"]
@@ -62,7 +64,7 @@ def setup(args: argparse.Namespace) -> None:
 
     day_dpath = __parent__ / f"day_{day}_{name.lower().replace(' ', '_')}"
 
-    msg_ph = f"Directory for day {day} ({name}) was {{}} set up"
+    msg_ph = f"Directory {day_dpath} for day {day} ({name}) was {{}} set up"
 
     if day_dpath.exists():
         warnings.warn(msg_ph.format("already"))
