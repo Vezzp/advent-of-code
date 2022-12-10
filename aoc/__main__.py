@@ -62,7 +62,9 @@ def setup(args: argparse.Namespace) -> None:
     day = parsed_puzzle_name["day"]
     name = parsed_puzzle_name["name"]
 
-    day_dpath = __parent__ / f"day_{day}_{name.lower().replace(' ', '_')}"
+    day_dpath = (
+        __parent__ / f"day_{day}_{name.lower().replace(' ', '_').replace('-', '_')}"
+    )
 
     msg_ph = f"Directory {day_dpath} for day {day} ({name}) was {{}} set up"
 
