@@ -7,6 +7,7 @@ from typing import Generic, NamedTuple, TypeAlias, TypeVar
 from typing_extensions import NamedTuple, Self
 
 _T = TypeVar("_T")
+_TT = TypeVar("_TT")
 
 
 class Direction(enum.IntEnum):
@@ -26,11 +27,14 @@ class _GridGeometry(NamedTuple, Generic[_T]):
     x: _T
 
 
+_GridGeometryLike: TypeAlias = _TT | tuple[_T, _T]
+
+
 class Shape(_GridGeometry[int]):
     pass
 
 
-ShapeLike: TypeAlias = Shape | tuple[int, int]
+ShapeLike: TypeAlias = _GridGeometryLike[Shape, int]
 
 
 class Border(_GridGeometry[range]):
@@ -47,6 +51,9 @@ class Border(_GridGeometry[range]):
 
 class ClipLimit(_GridGeometry[tuple[int, int]]):
     pass
+
+
+ClipLimitLike = _GridGeometryLike[ClipLimit, tuple[int, int]]
 
 
 class Point(_GridGeometry[int]):
@@ -92,10 +99,10 @@ class Point(_GridGeometry[int]):
 
         return out
 
-    def clip(self, limit: ClipLimit) -> Self:
+    def clip(self, *limits: tuple[int, int]) -> Self:
         out = Point(
-            self._clip(self.y, limit.y),
-            self._clip(self.x, limit.x),
+            self._clip(self.y, limits[0]),
+            self._clip(self.x, limits[1]),
         )
         return out
 

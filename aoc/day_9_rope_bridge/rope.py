@@ -27,23 +27,18 @@ class Knot:
         head = self.head
         tail = self.tail
 
-        if direction is None:
-            match vec := tail - head:
-                case [(-1 | 0 | 1), (-1 | 0 | 1)]:
-                    ...
-                case _:
-                    tail -= vec.clip(ClipLimit((-1, 1), (-1, 1)))
-
-        else:
+        if direction is not None:
             head = head.step(direction)
 
-            match vec := tail - head:
-                case [(-1 | 0 | 1), (-1 | 0 | 1)]:
-                    ...
-                case (0, _) | (_, 0):
-                    tail = tail.step(direction)
-                case _:
-                    tail -= vec.step(direction)
+        match vec := tail - head:
+            case [(-1 | 0 | 1), (-1 | 0 | 1)]:
+                ...
+            case _:
+                tail -= (
+                    vec.clip((-1, 1), (-1, 1))
+                    if direction is None
+                    else vec.step(direction)
+                )
 
         self.head = head
         self.tail = tail
