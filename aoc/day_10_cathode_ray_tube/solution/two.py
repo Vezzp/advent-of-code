@@ -27,8 +27,5 @@ def solve(stream: TextIO) -> str:
         applymap(crt.connect, op.run(cpu))
 
     out = str(crt)
-    print(out)
-    print()
-    print(TEST_OUTPUT)
 
     return out
