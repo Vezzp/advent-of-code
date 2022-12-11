@@ -13,7 +13,9 @@ from typing_extensions import TypeAlias
 
 __parent__ = Path(__file__).resolve().parent
 
-PUZZLE_NAME_RE = re.compile(r"(?:---)?\s*Day\s+(?P<day>\d+):\s+(?P<name>.+)\s*(?:---)?")
+PUZZLE_NAME_RE = re.compile(
+    r"(?:---)?\s+?Day\s+(?P<day>\d+):\s+(?P<name>.+)\s+?(?:---)?"
+)
 
 
 Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
