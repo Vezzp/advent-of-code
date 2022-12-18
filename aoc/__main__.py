@@ -5,7 +5,9 @@ import enum
 import importlib.util
 import re
 import sys
+import textwrap
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import TypedDict, cast
@@ -17,7 +19,38 @@ __parent__ = Path(__file__).resolve().parent
 PUZZLE_NAME_RE = re.compile(r"(?:---\s+)?Day\s+(?P<day>\d+):\s+(?P<name>.+)(?:\s+---)?")
 
 
-Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str
+PART_SOLUTION_CONTENT = textwrap.dedent(
+    """\
+    from __future__ import annotations
+
+    from typing import TextIO
+
+
+    def solve(stream: TextIO) -> ...:
+        ...
+
+
+    def get_test_etalon() -> ...:
+        return ...
+
+
+    def get_test_solution(stream: TextIO, **_) -> ...:
+        return solve(stream)
+
+
+    def get_task_solution(stream: TextIO, **_) -> ...:
+        return solve(stream)
+    """
+)
+
+
+@dataclass
+class TemplatedFile:
+    fname: str
+    content: str
+
+
+Tree: TypeAlias = list["Tree"] | dict[str, "Tree"] | str | TemplatedFile
 
 
 class ParsedPuzzleName(TypedDict):
@@ -30,6 +63,10 @@ def make_tree(root: Path, tree: Tree) -> None:
         case str():
             root.mkdir(parents=True, exist_ok=True)
             (root / tree).touch()
+
+        case TemplatedFile():
+            root.mkdir(parents=True, exist_ok=True)
+            (root / tree.fname).write_text(tree.content)
 
         case list():
             for subtree in tree:
@@ -83,8 +120,8 @@ def setup(args: argparse.Namespace) -> None:
                     "__init__.py",
                     "input.txt",
                     "test_input.txt",
-                    "one.py",
-                    "two.py",
+                    TemplatedFile("one.py", PART_SOLUTION_CONTENT),
+                    TemplatedFile("two.py", PART_SOLUTION_CONTENT),
                 ]
             },
         ],
