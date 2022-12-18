@@ -7,6 +7,7 @@ import re
 import sys
 import warnings
 from pathlib import Path
+from types import ModuleType
 from typing import TypedDict, cast
 
 from typing_extensions import TypeAlias
@@ -95,19 +96,10 @@ def setup(args: argparse.Namespace) -> None:
 def solve(args: argparse.Namespace) -> None:
     day_dpath = next(iter((__parent__.glob(f"day_{args.day}*"))))
 
-    spec = importlib.util.spec_from_file_location(
-        (mname := "solver"),
-        day_dpath / "solution" / f"{args.part}.py",
+    _load_module((day_mname := f"aoc.{day_dpath.name}"), day_dpath / "__init__.py")
+    part_solver = _load_module(
+        f"{day_mname}.solution.{args.part}", day_dpath / "solution" / f"{args.part}.py"
     )
-    assert spec is not None
-
-    solver = importlib.util.module_from_spec(spec)
-    sys.modules[mname] = solver
-
-    assert spec.loader is not None
-    spec.loader.exec_module(solver)
-
-    solve = solver.solve
 
     match args.case:
         case "task":
@@ -117,7 +109,11 @@ def solve(args: argparse.Namespace) -> None:
             from aoc.utils import run_tests
 
             run_tests(
-                solve, (day_dpath / "solution" / "test_input.txt", solver.TEST_OUTPUT)
+                part_solver.get_test_solution,
+                (
+                    day_dpath / "solution" / "test_input.txt",
+                    part_solver.get_test_etalon(),
+                ),
             )
 
             return
@@ -127,7 +123,20 @@ def solve(args: argparse.Namespace) -> None:
             input_fpath = Path(args.input)
 
     with input_fpath.open() as fin:
-        print(solve(fin))
+        print(part_solver.get_task_solution(fin, num_workers=args.num_workers))
+
+
+def _load_module(name: str, path: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None
+
+    out = importlib.util.module_from_spec(spec)
+    sys.modules[name] = out
+
+    assert spec.loader is not None
+    spec.loader.exec_module(out)
+
+    return out
 
 
 def prepare_parser() -> argparse.ArgumentParser:
@@ -144,6 +153,9 @@ def prepare_parser() -> argparse.ArgumentParser:
         "-c", "--case", type=str, choices=["test", "task"], required=False, default=None
     )
     subparser.add_argument("-i", "--input", type=str, required=False, default=None)
+    subparser.add_argument(
+        "-P", "--num-workers", type=int, required=False, default=None
+    )
     subparser.set_defaults(handler=solve)
 
     subparser = subparsers.add_parser("setup", help="Setup directory for daily puzzle")
