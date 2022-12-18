@@ -5,8 +5,6 @@ from typing import TextIO
 from aoc.day_13_distress_signal.packet import Packet
 from aoc.day_13_distress_signal.parser import parse
 
-TEST_OUTPUT = 140
-
 DIVIDER_PACKAGES = (Packet([2]), Packet([6]))
 
 
@@ -19,3 +17,15 @@ def solve(stream: TextIO) -> int:
         out *= packages.index(package) + 1
 
     return out
+
+
+def get_test_etalon() -> int:
+    return 140
+
+
+def get_test_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> int:
+    return solve(stream)

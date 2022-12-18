@@ -8,16 +8,6 @@ from aoc.day_10_cathode_ray_tube.crt import CRT
 from aoc.day_10_cathode_ray_tube.parser import parse_command
 from aoc.day_10_cathode_ray_tube.utils import applymap
 
-TEST_OUTPUT = textwrap.dedent(
-    """\
-    ##..##..##..##..##..##..##..##..##..##..
-    ###...###...###...###...###...###...###.
-    ####....####....####....####....####....
-    #####.....#####.....#####.....#####.....
-    ######......######......######......####
-    #######.......#######.......#######....."""
-)
-
 
 def solve(stream: TextIO) -> str:
     cpu = CPU()
@@ -29,3 +19,23 @@ def solve(stream: TextIO) -> str:
     out = str(crt)
 
     return out
+
+
+def get_test_etalon() -> str:
+    return textwrap.dedent(
+        """\
+        ##..##..##..##..##..##..##..##..##..##..
+        ###...###...###...###...###...###...###.
+        ####....####....####....####....####....
+        #####.....#####.....#####.....#####.....
+        ######......######......######......####
+        #######.......#######.......#######....."""
+    )
+
+
+def get_test_solution(stream: TextIO, **_) -> str:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> str:
+    return solve(stream)

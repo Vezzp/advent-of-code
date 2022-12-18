@@ -6,8 +6,6 @@ from typing import TextIO
 
 from aoc.day_11_monkey_in_the_middle.parser import parse_monkeys
 
-TEST_OUTPUT = 10605
-
 
 def solve(stream: TextIO) -> int:
     monkeys = parse_monkeys(stream)
@@ -23,3 +21,15 @@ def solve(stream: TextIO) -> int:
     out = operator.mul(*heapq.nlargest(2, counters))
 
     return out
+
+
+def get_test_etalon() -> int:
+    return 10605
+
+
+def get_test_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> int:
+    return solve(stream)

@@ -5,8 +5,6 @@ from typing import TextIO
 from aoc.day_8_treetop_tree_house.forest import Forest, ForestVisibilityMap
 from aoc.day_8_treetop_tree_house.parser import parse_forest_data
 
-TEST_OUTPUT = 21
-
 
 def solve(stream: TextIO) -> int:
     forest = Forest.from_stream(stream, parse_forest_data)
@@ -14,3 +12,15 @@ def solve(stream: TextIO) -> int:
     out = forest_visibility_map.num_trees
 
     return out
+
+
+def get_test_etalon() -> int:
+    return 21
+
+
+def get_test_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> int:
+    return solve(stream)

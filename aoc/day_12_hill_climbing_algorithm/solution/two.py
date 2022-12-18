@@ -5,8 +5,6 @@ from typing import Iterable, TextIO
 from aoc.day_12_hill_climbing_algorithm.geometry import Grid, Point
 from aoc.day_12_hill_climbing_algorithm.route import Route
 
-TEST_OUTPUT = 29
-
 
 def transition_strategy(landscape: Grid, point: Point) -> Iterable[Point]:
     height = landscape[point] - 1
@@ -35,3 +33,15 @@ def solve(stream: TextIO) -> int:
     )
 
     return out
+
+
+def get_test_etalon() -> int:
+    return 29
+
+
+def get_test_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> int:
+    return solve(stream)

@@ -5,8 +5,6 @@ from typing import TextIO
 from aoc.day_7_no_space_left_on_device.fs import Dir, FSObject
 from aoc.day_7_no_space_left_on_device.parser import parse_filesystem
 
-TEST_OUTPUT = 24933642
-
 MAX_FILESYSTEM_SIZE = 70_000_000
 MIN_AVAILABLE_SIZE = 30_000_000
 
@@ -28,3 +26,15 @@ def solve(src: TextIO | Dir) -> int:
     out = drop_dir.size
 
     return out
+
+
+def get_test_etalon() -> int:
+    return 24933642
+
+
+def get_test_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
+
+
+def get_task_solution(stream: TextIO, **_) -> int:
+    return solve(stream)
