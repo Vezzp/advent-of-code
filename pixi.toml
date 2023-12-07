@@ -1,0 +1,18 @@
+[project]
+name = "advent-of-code"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Vladislav Shlenskii <vladislav.shlenskii@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tasks]
+setup = "python -OO -m tools setup"
+solve = "python -OO -m tools solve"
+
+[dependencies]
+python = "3.12.*"
+typing_extensions = "4.8.0.*"
+typer = "0.9.0.*"
+loguru = "0.7.2.*"
+go = "1.21.4.*"
