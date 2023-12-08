@@ -70,43 +70,15 @@ package:
   name: click
   version: 8.1.7
   category: main
-  manager: conda
-  dependencies:
-  - __unix
-  - python >=3.8
-  url: https://conda.anaconda.org/conda-forge/noarch/click-8.1.7-unix_pyh707e725_0.conda
+  manager: pypi
+  requires_dist:
+  - colorama ; platform_system == 'Windows'
+  - importlib-metadata ; python_version < '3.8'
+  requires_python: '>=3.7'
+  url: https://files.pythonhosted.org/packages/00/2e/d53fa4befbf2cfa713304affc7ca780ce4fc1fd8710527771b58311a3229/click-8.1.7-py3-none-any.whl#sha256=ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28
   hash:
-    md5: f3ad426304898027fc619827ff428eca
-    sha256: f0016cbab6ac4138a429e28dbcb904a90305b34b3fe41a9b89d697c90401caec
-  build: unix_pyh707e725_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: BSD-3-Clause
-  license_family: BSD
-  noarch: python
-  size: 84437
-  timestamp: 1692311973840
-- platform: osx-arm64
-  name: colorama
-  version: 0.4.6
-  category: main
-  manager: conda
-  dependencies:
-  - python >=3.7
-  url: https://conda.anaconda.org/conda-forge/noarch/colorama-0.4.6-pyhd8ed1ab_0.tar.bz2
-  hash:
-    md5: 3faab06a954c2a04039983f2c4a50d99
-    sha256: 2c1b2e9755ce3102bca8d69e8f26e4f087ece73f50418186aee7c74bef8e1698
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: BSD-3-Clause
-  license_family: BSD
-  noarch: python
-  size: 25170
-  timestamp: 1666700778190
+    md5: null
+    sha256: ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28
 - platform: osx-arm64
   name: go
   version: 1.21.4
@@ -293,64 +265,37 @@ package:
   name: loguru
   version: 0.7.2
   category: main
-  manager: conda
-  dependencies:
-  - python >=3.12.0rc3,<3.13.0a0
-  - python >=3.12.0rc3,<3.13.0a0 *_cpython
-  - python_abi 3.12.* *_cp312
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/loguru-0.7.2-py312h81bd7bf_1.conda
+  manager: pypi
+  requires_dist:
+  - aiocontextvars >=0.2.0 ; python_version < '3.7'
+  - colorama >=0.3.4 ; sys_platform == 'win32'
+  - win32-setctime >=1.0.0 ; sys_platform == 'win32'
+  - mypy ==0.910 ; python_version < '3.6' and extra == 'dev'
+  - tox ==3.27.1 ; python_version < '3.8' and extra == 'dev'
+  - pytest ==6.1.2 ; python_version < '3.8' and extra == 'dev'
+  - pytest-cov ==2.12.1 ; python_version < '3.8' and extra == 'dev'
+  - colorama ==0.4.5 ; python_version < '3.8' and extra == 'dev'
+  - freezegun ==1.1.0 ; python_version < '3.8' and extra == 'dev'
+  - mypy ==0.971 ; (python_version >= '3.6' and python_version < '3.7') and extra == 'dev'
+  - pytest-mypy-plugins ==1.9.3 ; (python_version >= '3.6' and python_version < '3.8') and extra == 'dev'
+  - exceptiongroup ==1.1.3 ; (python_version >= '3.7' and python_version < '3.11') and extra == 'dev'
+  - mypy ==1.4.1 ; (python_version >= '3.7' and python_version < '3.8') and extra == 'dev'
+  - pre-commit ==3.4.0 ; python_version >= '3.8' and extra == 'dev'
+  - tox ==4.11.0 ; python_version >= '3.8' and extra == 'dev'
+  - pytest ==7.4.0 ; python_version >= '3.8' and extra == 'dev'
+  - pytest-cov ==4.1.0 ; python_version >= '3.8' and extra == 'dev'
+  - pytest-mypy-plugins ==3.0.0 ; python_version >= '3.8' and extra == 'dev'
+  - colorama ==0.4.6 ; python_version >= '3.8' and extra == 'dev'
+  - freezegun ==1.2.2 ; python_version >= '3.8' and extra == 'dev'
+  - mypy ==1.5.1 ; python_version >= '3.8' and extra == 'dev'
+  - Sphinx ==7.2.5 ; python_version >= '3.9' and extra == 'dev'
+  - sphinx-autobuild ==2021.3.14 ; python_version >= '3.9' and extra == 'dev'
+  - sphinx-rtd-theme ==1.3.0 ; python_version >= '3.9' and extra == 'dev'
+  requires_python: '>=3.5'
+  url: https://files.pythonhosted.org/packages/03/0a/4f6fed21aa246c6b49b561ca55facacc2a44b87d65b8b92362a8e99ba202/loguru-0.7.2-py3-none-any.whl#sha256=003d71e3d3ed35f0f8984898359d65b79e5b21943f78af86aa5491210429b8eb
   hash:
-    md5: c3f8892c76329082e82916808654bd58
-    sha256: e89502e86d5a5a3c5552549fcb73ffb3530464a04c2649684faa099a50f64121
-  build: py312h81bd7bf_1
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 1
-  license: MIT
-  license_family: MIT
-  size: 123884
-  timestamp: 1695547752324
-- platform: osx-arm64
-  name: markdown-it-py
-  version: 3.0.0
-  category: main
-  manager: conda
-  dependencies:
-  - mdurl >=0.1,<1
-  - python >=3.8
-  url: https://conda.anaconda.org/conda-forge/noarch/markdown-it-py-3.0.0-pyhd8ed1ab_0.conda
-  hash:
-    md5: 93a8e71256479c62074356ef6ebf501b
-    sha256: c041b0eaf7a6af3344d5dd452815cdc148d6284fec25a4fa3f4263b3a021e962
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: MIT
-  license_family: MIT
-  noarch: python
-  size: 64356
-  timestamp: 1686175179621
-- platform: osx-arm64
-  name: mdurl
-  version: 0.1.0
-  category: main
-  manager: conda
-  dependencies:
-  - python >=3.6
-  url: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.0-pyhd8ed1ab_0.tar.bz2
-  hash:
-    md5: f8dab71fdc13b1bf29a01248b156d268
-    sha256: c678b9194e025b1fb665bec30ee20aab93399203583875b1dcc0a3b52a8f5523
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: MIT
-  license_family: MIT
-  noarch: python
-  size: 13707
-  timestamp: 1639515992326
+    md5: null
+    sha256: 003d71e3d3ed35f0f8984898359d65b79e5b21943f78af86aa5491210429b8eb
 - platform: osx-arm64
   name: ncurses
   version: '6.4'
@@ -391,26 +336,6 @@ package:
   size: 2856233
   timestamp: 1701162541844
 - platform: osx-arm64
-  name: pygments
-  version: 2.17.2
-  category: main
-  manager: conda
-  dependencies:
-  - python >=3.7
-  url: https://conda.anaconda.org/conda-forge/noarch/pygments-2.17.2-pyhd8ed1ab_0.conda
-  hash:
-    md5: 140a7f159396547e9799aa98f9f0742e
-    sha256: af5f8867450dc292f98ea387d4d8945fc574284677c8f60eaa9846ede7387257
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: BSD-2-Clause
-  license_family: BSD
-  noarch: python
-  size: 860425
-  timestamp: 1700608076927
-- platform: osx-arm64
   name: python
   version: 3.12.0
   category: main
@@ -441,26 +366,6 @@ package:
   size: 13306758
   timestamp: 1696322682581
 - platform: osx-arm64
-  name: python_abi
-  version: '3.12'
-  category: main
-  manager: conda
-  dependencies: []
-  url: https://conda.anaconda.org/conda-forge/osx-arm64/python_abi-3.12-4_cp312.conda
-  hash:
-    md5: bbb3a02c78b2d8219d7213f76d644a2a
-    sha256: db25428e4f24f8693ffa39f3ff6dfbb8fd53bc298764b775b57edab1c697560f
-  build: 4_cp312
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 4
-  constrains:
-  - python 3.12.* *_cpython
-  license: BSD-3-Clause
-  license_family: BSD
-  size: 6508
-  timestamp: 1695147497048
-- platform: osx-arm64
   name: readline
   version: '8.2'
   category: main
@@ -479,49 +384,6 @@ package:
   license_family: GPL
   size: 250351
   timestamp: 1679532511311
-- platform: osx-arm64
-  name: rich
-  version: 13.7.0
-  category: main
-  manager: conda
-  dependencies:
-  - markdown-it-py >=2.2.0
-  - pygments >=2.13.0,<3.0.0
-  - python >=3.7.0
-  - typing_extensions >=4.0.0,<5.0.0
-  url: https://conda.anaconda.org/conda-forge/noarch/rich-13.7.0-pyhd8ed1ab_0.conda
-  hash:
-    md5: d7a11d4f3024b2f4a6e0ae7377dd61e9
-    sha256: 4bb25bf1f5664772b2c4c2e3878aa6e7dc2695f97e3da4ee8e47c51e179913bb
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: MIT
-  license_family: MIT
-  noarch: python
-  size: 184071
-  timestamp: 1700160247583
-- platform: osx-arm64
-  name: shellingham
-  version: 1.5.4
-  category: main
-  manager: conda
-  dependencies:
-  - python >=3.7
-  url: https://conda.anaconda.org/conda-forge/noarch/shellingham-1.5.4-pyhd8ed1ab_0.conda
-  hash:
-    md5: d08db09a552699ee9e7eec56b4eb3899
-    sha256: 3c49a0a101c41b7cf6ac05a1872d7a1f91f1b6d02eecb4a36b605a19517862bb
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: MIT
-  license_family: MIT
-  noarch: python
-  size: 14568
-  timestamp: 1698144516278
 - platform: osx-arm64
   name: tk
   version: 8.6.13
@@ -545,67 +407,46 @@ package:
   name: typer
   version: 0.9.0
   category: main
-  manager: conda
-  dependencies:
-  - click >=7.1.1,<9
-  - colorama >=0.4.3,<0.5.0
-  - python >=3.6
-  - rich >=10.11.0,<14.0.0
-  - shellingham >=1.3.0,<2.0.0
+  manager: pypi
+  requires_dist:
+  - click >=7.1.1, <9.0.0
   - typing-extensions >=3.7.4.3
-  url: https://conda.anaconda.org/conda-forge/noarch/typer-0.9.0-pyhd8ed1ab_0.conda
+  - colorama >=0.4.3, <0.5.0 ; extra == 'all'
+  - shellingham >=1.3.0, <2.0.0 ; extra == 'all'
+  - rich >=10.11.0, <14.0.0 ; extra == 'all'
+  - autoflake >=1.3.1, <2.0.0 ; extra == 'dev'
+  - flake8 >=3.8.3, <4.0.0 ; extra == 'dev'
+  - pre-commit >=2.17.0, <3.0.0 ; extra == 'dev'
+  - mkdocs >=1.1.2, <2.0.0 ; extra == 'doc'
+  - mkdocs-material >=8.1.4, <9.0.0 ; extra == 'doc'
+  - mdx-include >=1.4.1, <2.0.0 ; extra == 'doc'
+  - pillow >=9.3.0, <10.0.0 ; extra == 'doc'
+  - cairosvg >=2.5.2, <3.0.0 ; extra == 'doc'
+  - shellingham >=1.3.0, <2.0.0 ; extra == 'test'
+  - pytest >=4.4.0, <8.0.0 ; extra == 'test'
+  - pytest-cov >=2.10.0, <5.0.0 ; extra == 'test'
+  - coverage >=6.2, <7.0 ; extra == 'test'
+  - pytest-xdist >=1.32.0, <4.0.0 ; extra == 'test'
+  - pytest-sugar >=0.9.4, <0.10.0 ; extra == 'test'
+  - mypy ==0.910 ; extra == 'test'
+  - black >=22.3.0, <23.0.0 ; extra == 'test'
+  - isort >=5.0.6, <6.0.0 ; extra == 'test'
+  - rich >=10.11.0, <14.0.0 ; extra == 'test'
+  requires_python: '>=3.6'
+  url: https://files.pythonhosted.org/packages/bf/0e/c68adf10adda05f28a6ed7b9f4cd7b8e07f641b44af88ba72d9c89e4de7a/typer-0.9.0-py3-none-any.whl#sha256=5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee
   hash:
-    md5: 5030a13b2fe5e143d5956d4943d3018f
-    sha256: d395e1e92281abb13e043220ecf8ea973ada8d38a1e8c683df14f46541c64bd2
-  build: pyhd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: MIT
-  license_family: MIT
-  noarch: python
-  size: 79064
-  timestamp: 1683029411797
+    md5: null
+    sha256: 5d96d986a21493606a358cae4461bd8cdf83cbf33a5aa950ae629ca3b51467ee
 - platform: osx-arm64
   name: typing-extensions
   version: 4.8.0
   category: main
-  manager: conda
-  dependencies:
-  - typing_extensions 4.8.0 pyha770c72_0
-  url: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.8.0-hd8ed1ab_0.conda
+  manager: pypi
+  requires_python: '>=3.8'
+  url: https://files.pythonhosted.org/packages/24/21/7d397a4b7934ff4028987914ac1044d3b7d52712f30e2ac7a2ae5bc86dd0/typing_extensions-4.8.0-py3-none-any.whl#sha256=8f92fc8806f9a6b641eaa5318da32b44d401efaac0f6678c9bc448ba3605faa0
   hash:
-    md5: 384462e63262a527bda564fa2d9126c0
-    sha256: d6e1dddd0c372218ef15912383d351ac8c73465cbf16238017f0269813cafe2d
-  build: hd8ed1ab_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: PSF-2.0
-  license_family: PSF
-  noarch: python
-  size: 10104
-  timestamp: 1695040958008
-- platform: osx-arm64
-  name: typing_extensions
-  version: 4.8.0
-  category: main
-  manager: conda
-  dependencies:
-  - python >=3.8
-  url: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.8.0-pyha770c72_0.conda
-  hash:
-    md5: 5b1be40a26d10a06f6d4f1f9e19fa0c7
-    sha256: 38d16b5c53ec1af845d37d22e7bb0e6c934c7f19499123507c5a470f6f8b7dde
-  build: pyha770c72_0
-  arch: aarch64
-  subdir: osx-arm64
-  build_number: 0
-  license: PSF-2.0
-  license_family: PSF
-  noarch: python
-  size: 35108
-  timestamp: 1695040948828
+    md5: null
+    sha256: 8f92fc8806f9a6b641eaa5318da32b44d401efaac0f6678c9bc448ba3605faa0
 - platform: osx-arm64
   name: tzdata
   version: 2023c

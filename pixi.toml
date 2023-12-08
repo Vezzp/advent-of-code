@@ -12,7 +12,9 @@ solve = "python -OO -m tools solve"
 
 [dependencies]
 python = "3.12.*"
-typing_extensions = "4.8.0.*"
-typer = "0.9.0.*"
-loguru = "0.7.2.*"
 go = "1.21.4.*"
+
+[pypi-dependencies]
+typer = "*"
+typing-extensions = "*"
+loguru = "*"
