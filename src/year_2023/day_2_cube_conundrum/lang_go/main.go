@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"advent_of_code/jogtrot"
-
-	"github.com/samber/lo"
 )
 
 type Game struct {
@@ -17,7 +15,7 @@ type Game struct {
 }
 
 func (g *Game) IsRoundConfigrationValid(c Configuration) bool {
-	return lo.EveryBy(
+	return jogtrot.SliceEveryBy(
 		g.Rounds,
 		func(r Round) bool {
 			return r.R <= c.R && r.G <= c.G && r.B <= c.B
@@ -107,14 +105,12 @@ func SolveFirstPart(filepath string) {
 		panic(err)
 	}
 
-	solution := lo.SumBy(
-		lo.Filter(
+	solution := jogtrot.SliceSumBy(
+		jogtrot.SliceFilter(
 			jogtrot.SliceMap(rows, ParseGameFromStr),
-			jogtrot.LoWrapIndex(
-				func(g Game) bool {
-					return g.IsRoundConfigrationValid(target)
-				},
-			),
+			func(g Game) bool {
+				return g.IsRoundConfigrationValid(target)
+			},
 		),
 		func(g Game) int { return g.ID },
 	)

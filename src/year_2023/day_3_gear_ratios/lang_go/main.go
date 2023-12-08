@@ -8,8 +8,6 @@ import (
 	"strconv"
 
 	"advent_of_code/jogtrot"
-
-	"github.com/samber/lo"
 )
 
 const (
@@ -123,11 +121,14 @@ func SolveFirstPart(filepath string) {
 	schematic := Schematic{Rows: rows}
 
 	re := regexp.MustCompile(`\d+`)
-	numbers := lo.FlatMap(
-		rows,
-		func(str string, index int) []Number {
-			return ParseNumbersFromStr(str, index, re)
-		},
+
+	numbers := jogtrot.SliceFlatten(
+		jogtrot.SliceMapWithIndex(
+			rows,
+			func(str string, index int) []Number {
+				return ParseNumbersFromStr(str, index, re)
+			},
+		),
 	)
 
 	solution := 0
@@ -148,11 +149,13 @@ func SolveSecondPart(filepath string) {
 	schematic := Schematic{Rows: rows}
 
 	re := regexp.MustCompile(`\d+`)
-	numbers := lo.FlatMap(
-		rows,
-		func(str string, index int) []Number {
-			return ParseNumbersFromStr(str, index, re)
-		},
+	numbers := jogtrot.SliceFlatten(
+		jogtrot.SliceMapWithIndex(
+			rows,
+			func(str string, index int) []Number {
+				return ParseNumbersFromStr(str, index, re)
+			},
+		),
 	)
 
 	gearToAdjacentNumbers := make(map[Coordinate][]Number)
