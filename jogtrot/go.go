@@ -5,6 +5,8 @@ import (
 	"cmp"
 	"fmt"
 	"os"
+
+	"golang.org/x/exp/constraints"
 )
 
 func ReadFileRows(filepath string) ([]string, error) {
@@ -51,6 +53,14 @@ func SliceMap[T, R any](slice []T, fn func(T) R) []R {
 	return out
 }
 
+func SliceMapWithIndex[T, R any](slice []T, fn func(T, int) R) []R {
+	out := make([]R, len(slice))
+	for idx, item := range slice {
+		out[idx] = fn(item, idx)
+	}
+	return out
+}
+
 func SliceIntersection[T cmp.Ordered](lhs, rhs []T) []T {
 	var out []T
 	visited := make(map[T]bool)
@@ -61,6 +71,69 @@ func SliceIntersection[T cmp.Ordered](lhs, rhs []T) []T {
 		if _, ok := visited[item]; ok {
 			out = append(out, item)
 		}
+	}
+	return out
+}
+
+func SliceEveryBy[T any](lst []T, fn func(T) bool) bool {
+	for _, item := range lst {
+		if !fn(item) {
+			return false
+		}
+	}
+	return true
+}
+
+func SliceFilter[T any](lst []T, fn func(T) bool) []T {
+	out := make([]T, 0, len(lst)/2)
+	for _, item := range lst {
+		if fn(item) {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func SliceSumBy[T any, R constraints.Float | constraints.Integer](lst []T, fn func(T) R) R {
+	out := R(0)
+	for _, item := range lst {
+		out += fn(item)
+	}
+	return out
+}
+
+func SliceFlatten[T any](lst [][]T) []T {
+	out := make([]T, 0, len(lst))
+	for _, item := range lst {
+		out = append(out, item...)
+	}
+	return out
+}
+
+func SliceAll[T cmp.Ordered](lst []T, fn func(T) bool) bool {
+	for _, item := range lst {
+		if !fn(item) {
+			return false
+		}
+	}
+	return true
+}
+
+func GCD[T constraints.Integer](a, b T) T {
+	for b != 0 {
+		a, b = b, a%b
+	}
+	return a
+}
+
+func LCM[T constraints.Integer](a, b T) T {
+	return (a * b) / GCD(a, b)
+}
+
+func SliceReduce[T any](lst []T, fn func(T, T) T) T {
+	out := lst[0]
+	for _, item := range lst[1:] {
+		out = fn(out, item)
 	}
 	return out
 }
