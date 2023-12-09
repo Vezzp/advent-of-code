@@ -9,20 +9,25 @@ import (
 )
 
 func SolveFirstPart(filepath string) {
-	solution := "unimplemented ..."
+	solution := fmt.Sprintf("Unimplemented. No solution for %s", filepath)
 	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
-	solution := "unimplemented ..."
+	solution := fmt.Sprintf("Unimplemented. No solution for %s", filepath)
 	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {
-	var part string
+	var part, input string
 
-	flag.StringVar(&part, "p", "Part to solve", "Part to solve")
+	flag.StringVar(&part, "p", "", "Puzzle part to solve")
+	flag.StringVar(&input, "i", "./input.txt", "File with puzzle input")
 	flag.Parse()
+
+	if _, err := os.Stat(input); err != nil {
+		panic(err)
+	}
 
 	parts := make([]string, 0)
 	switch part {
@@ -32,27 +37,12 @@ func main() {
 		parts = append(parts, "1", "2")
 	}
 
-	var src string
-	args := flag.Args()
-	switch len(args) {
-	case 0:
-		src = "./input.txt"
-		if _, err := os.Stat(src); err != nil {
-			panic("When no puzzle input is given, ./input.txt must exist")
-		}
-
-	case 1:
-		src = args[0]
-	default:
-		panic(fmt.Sprintf("Solver accepts no or single puzzle files, got %d", len(args)))
-	}
-
 	for _, part := range parts {
 		switch part {
 		case "1":
-			SolveFirstPart(src)
+			SolveFirstPart(input)
 		case "2":
-			SolveSecondPart(src)
+			SolveSecondPart(input)
 		}
 	}
 }
