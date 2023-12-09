@@ -3,6 +3,7 @@ import dataclasses
 import enum
 import functools
 import inspect
+import logging
 import operator
 import re
 import selectors
@@ -115,7 +116,7 @@ class Lang(str, enum.Enum):
 
 
 LANG_TO_CMD = {
-    Lang.PYTHON: "python -OO",
+    Lang.PYTHON: f"PYTHONPATH={ROOT} python -OO",
     Lang.GOLANG: "go run",
 }
 
@@ -188,16 +189,32 @@ def _patch_command_signature(__w: Callable, /) -> None:
 
 @command("setup", help="Setup directory and draft template for daily puzzle")
 def setup_handler(
-    *, ctx: typer.Context, name: Annotated[str, typer.Option("-n", "--name")]
+    *,
+    ctx: typer.Context,
+    name: Annotated[Optional[str], typer.Option("-n", "--name")] = None,
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
-    puzzle_name = ParsedPuzzleName.from_str(name.strip())
-    day_root = ROOT.joinpath(
-        "src",
-        f"year_{opts.year}",
-        f"day_{opts.day}_{puzzle_name.name}",
-    )
+
+    try:
+        day_root = get_day_root(opts)
+    except FileExistsError as err:
+        day_root = Path(err.__notes__[0])
+
+    if name is not None:
+        if day_root.exists():
+            logging.warning(
+                f"Day directory already exists at {day_root}. "
+                "Omitting name option, rename manually"
+            )
+
+        else:
+            puzzle_name = ParsedPuzzleName.from_str(name.strip())
+            day_root = day_root.with_name(
+                f"{day_root.name}_{puzzle_name.name}",
+            )
+
     day_root.mkdir(parents=True, exist_ok=True)
+
     for filename in (
         "input.txt",
         "test_p1_1_in.txt",
@@ -213,12 +230,12 @@ def setup_handler(
         solution_fpath = lang_root / entrypoint_name
         if solution_fpath.exists():
             loguru.logger.warning(
-                f"Solution/ solution draft for Advent-of-Code {opts.year}, day {puzzle_name.day}, "
+                f"Solution/ solution draft for Advent-of-Code {opts.year}, day {opts.day}, "
                 f"implemented in {lang.name.lower()}, already exists at {solution_fpath}"
             )
         else:
             loguru.logger.info(
-                f"Solution draft for Advent-of-Code {opts.year}, day {puzzle_name.day}, "
+                f"Solution draft for Advent-of-Code {opts.year}, day {opts.day}, "
                 f"implemented in {lang.name.lower()}, successfully created at {solution_fpath}"
             )
             solution_fpath.parent.mkdir(parents=True, exist_ok=True)
@@ -273,14 +290,14 @@ def test_handler(
 
                     for fpath_ in (test_case.puzzle, test_case.answer):
                         if fpath_ is None or not fpath_.exists():
-                            raise RuntimeError(f"{fpath_} should exist")
+                            raise FileExistsError(f"{fpath_} should exist")
 
                     assert test_case.answer is not None
                     assert test_case.puzzle is not None
 
                     answer_lines = test_case.answer.read_text().splitlines()
                     if len(answer_lines) == 0:
-                        raise RuntimeError(f"{test_case.answer} is empty")
+                        raise FileExistsError(f"{test_case.answer} is empty")
 
                     answer = answer_lines[0]
 
@@ -304,11 +321,16 @@ def test_handler(
 def get_day_root(opts: CommonOpts, /) -> Path:
     year_root = ROOT.joinpath("src", f"year_{opts.year}")
     if not year_root.exists():
-        raise RuntimeError(f"Year {opts.year} was not setup")
+        year_root.mkdir(parents=True, exist_ok=True)
 
-    day_root = next(iter(year_root.glob(f"day_{opts.day}*")))
+    day_root = next(
+        iter(year_root.glob(f"day_{opts.day}*")),
+        year_root.joinpath(f"day_{opts.day}"),
+    )
     if not day_root.exists():
-        raise RuntimeError(f"Day {opts.day} was not setup")
+        err = FileExistsError(f"Day {opts.day} was not setup")
+        err.add_note(f"{day_root!s}")
+        raise err
 
     return day_root
 
@@ -369,14 +391,6 @@ def run_inference(
     while proc.poll() is None:
         handle()
 
-    if (return_code := proc.wait()) != 0:
-        selector.close()
-        raise subprocess.CalledProcessError(
-            return_code,
-            cmd,
-            stderr=f"{proc.stderr}",
-        )
-
     # NOTE(vshlenskii): Two seconds must be enough to read remaining lines.
     timer = threading.Timer(2, _thread.interrupt_main)
     timer.start()
@@ -386,6 +400,14 @@ def run_inference(
     finally:
         timer.cancel()
     selector.close()
+
+    if (return_code := proc.wait()) != 0:
+        selector.close()
+        raise subprocess.CalledProcessError(
+            return_code,
+            cmd,
+            stderr=f"{proc.stderr}",
+        )
 
     return parsed_solutions
 
