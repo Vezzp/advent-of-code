@@ -212,7 +212,7 @@ func SolveFirstPart(filepath string) {
 		solution += int64(idx+1) * int64(camelBid.Bid)
 	}
 
-	jogtrot.PrintFirstPartSolution(solution)
+	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
@@ -237,7 +237,7 @@ func SolveSecondPart(filepath string) {
 		solution += int64(idx+1) * int64(camelBid.Bid)
 	}
 
-	jogtrot.PrintSecondPartSolution(solution)
+	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {

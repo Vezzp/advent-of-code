@@ -9,11 +9,11 @@ import (
 )
 
 func SolveFirstPart(filepath string) {
-	jogtrot.PrintFirstPartSolution("unimplemented ...")
+	jogtrot.PrintSolution(1, "unimplemented ...")
 }
 
 func SolveSecondPart(filepath string) {
-	jogtrot.PrintSecondPartSolution("unimplemented ...")
+	jogtrot.PrintSolution(2, "unimplemented ...")
 }
 
 func main() {

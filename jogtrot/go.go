@@ -37,14 +37,6 @@ func LoWrapIndex[P, R any](fn func(P) R) func(P, int) R {
 	}
 }
 
-func PrintFirstPartSolution(s any) {
-	fmt.Printf("Part 1 solution: %v\n", s)
-}
-
-func PrintSecondPartSolution(s any) {
-	fmt.Printf("Part 2 solution: %v\n", s)
-}
-
 func PrintSolution(part int, solution any) {
 	fmt.Printf("Part %d solution: %v\n", part, solution)
 }

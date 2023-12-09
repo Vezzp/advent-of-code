@@ -115,7 +115,7 @@ func SolveFirstPart(filepath string) {
 		journey.MakeStep()
 	}
 
-	jogtrot.PrintFirstPartSolution(journey.StepCount)
+	jogtrot.PrintSolution(1, journey.StepCount)
 }
 
 func SolveSecondPart(filepath string) {
@@ -134,7 +134,7 @@ func SolveSecondPart(filepath string) {
 	}
 
 	solution := jogtrot.SliceReduce(stepCounts, jogtrot.LCM)
-	jogtrot.PrintSecondPartSolution(solution)
+	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {

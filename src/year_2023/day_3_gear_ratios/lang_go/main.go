@@ -138,7 +138,7 @@ func SolveFirstPart(filepath string) {
 		}
 	}
 
-	jogtrot.PrintFirstPartSolution(solution)
+	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
@@ -172,7 +172,7 @@ func SolveSecondPart(filepath string) {
 		}
 	}
 
-	jogtrot.PrintSecondPartSolution(solution)
+	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {

@@ -250,16 +250,12 @@ def test_handler(*, ctx: typer.Context, part: Part = None) -> None:
         class TextSubtestTestResult(unittest.TextTestResult):
             def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
-                # NOTE(vshlenskii): If not use this, test case is counted as well, however
-                # I just want to count number of subtests only.
-                self._subtest_added: bool = False
+                # NOTE(vshlenskii): Exclude initial test from countF.
+                self.testsRun = -1
 
             def addSubTest(self, test, subtest, outcome):
                 super().addSubTest(test, subtest, outcome)
-                if self._subtest_added:
-                    self.testsRun += 1
-                else:
-                    self._subtest_added = True
+                self.testsRun += 1
 
         class TestCase(unittest.TestCase):
             def test(self) -> None:
@@ -267,10 +263,18 @@ def test_handler(*, ctx: typer.Context, part: Part = None) -> None:
                     if test_part not in parts:
                         continue
 
-                    assert test_case.puzzle is not None
-                    assert test_case.answer is not None
+                    for fpath_ in (test_case.puzzle, test_case.answer):
+                        if fpath_ is None or not fpath_.exists():
+                            raise RuntimeError(f"{fpath_} should exist")
 
-                    answer = test_case.answer.read_text().splitlines()[0]
+                    assert test_case.answer is not None
+                    assert test_case.puzzle is not None
+
+                    answer_lines = test_case.answer.read_text().splitlines()
+                    if len(answer_lines) == 0:
+                        raise RuntimeError(f"{test_case.answer} is empty")
+
+                    answer = answer_lines[0]
 
                     with self.subTest(f"{test_idx = } {test_part = }"):
                         solution = run_inference(

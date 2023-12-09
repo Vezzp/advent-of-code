@@ -74,7 +74,7 @@ func SolveFirstPart(filepath string) {
 		solution += card.Points()
 	}
 
-	jogtrot.PrintFirstPartSolution(solution)
+	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
@@ -98,7 +98,7 @@ func SolveSecondPart(filepath string) {
 		solution += val
 	}
 
-	jogtrot.PrintSecondPartSolution(solution)
+	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {

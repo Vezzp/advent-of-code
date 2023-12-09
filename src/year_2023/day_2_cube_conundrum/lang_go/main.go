@@ -115,7 +115,7 @@ func SolveFirstPart(filepath string) {
 		func(g Game) int { return g.ID },
 	)
 
-	jogtrot.PrintFirstPartSolution(solution)
+	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
@@ -131,7 +131,7 @@ func SolveSecondPart(filepath string) {
 		solution += c.Power()
 	}
 
-	jogtrot.PrintSecondPartSolution(solution)
+	jogtrot.PrintSolution(2, solution)
 }
 
 func main() {
