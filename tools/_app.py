@@ -243,7 +243,7 @@ def test_handler(
     part: Part = None,
     suppress_stdout: Annotated[
         bool, typer.Option("-s/-S", "--stdout/--no-stdout")
-    ] = True,
+    ] = False,
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     day_root = get_day_root(opts)
