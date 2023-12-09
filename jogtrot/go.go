@@ -28,6 +28,10 @@ func ReadFileRows(filepath string) []string {
 		rows = append(rows, scanner.Text())
 	}
 
+	if len(rows) == 0 {
+		panic(fmt.Sprintf("File %s is empty", filepath))
+	}
+
 	return rows
 }
 
