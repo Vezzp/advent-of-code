@@ -3,6 +3,7 @@ package jogtrot
 import (
 	"bufio"
 	"cmp"
+	"flag"
 	"fmt"
 	"os"
 
@@ -152,4 +153,26 @@ func SliceFirst[T any](lst []T) T {
 
 func SliceLast[T any](lst []T) T {
 	return lst[len(lst)-1]
+}
+
+func ParseCommandLine() ([]string, string) {
+	var part, input string
+
+	flag.StringVar(&part, "p", "", "Puzzle part to solve")
+	flag.StringVar(&input, "i", "./input.txt", "File with puzzle input")
+	flag.Parse()
+
+	if _, err := os.Stat(input); err != nil {
+		panic(err)
+	}
+
+	parts := make([]string, 0)
+	switch part {
+	case "1", "2":
+		parts = append(parts, part)
+	default:
+		parts = append(parts, "1", "2")
+	}
+
+	return parts, input
 }
