@@ -38,11 +38,15 @@ func LoWrapIndex[P, R any](fn func(P) R) func(P, int) R {
 }
 
 func PrintFirstPartSolution(s any) {
-	fmt.Printf("The first part solution is: %v\n", s)
+	fmt.Printf("Part 1 solution: %v\n", s)
 }
 
 func PrintSecondPartSolution(s any) {
-	fmt.Printf("The second part solution is: %v\n", s)
+	fmt.Printf("Part 2 solution: %v\n", s)
+}
+
+func PrintSolution(part int, solution any) {
+	fmt.Printf("Part %d solution: %v\n", part, solution)
 }
 
 func SliceMap[T, R any](slice []T, fn func(T) R) []R {
@@ -94,6 +98,14 @@ func SliceFilter[T any](lst []T, fn func(T) bool) []T {
 	return out
 }
 
+func SliceSum[T constraints.Float | constraints.Integer](lst []T) T {
+	out := T(0)
+	for _, item := range lst {
+		out += item
+	}
+	return out
+}
+
 func SliceSumBy[T any, R constraints.Float | constraints.Integer](lst []T, fn func(T) R) R {
 	out := R(0)
 	for _, item := range lst {
@@ -136,4 +148,12 @@ func SliceReduce[T any](lst []T, fn func(T, T) T) T {
 		out = fn(out, item)
 	}
 	return out
+}
+
+func SliceFirst[T any](lst []T) T {
+	return lst[0]
+}
+
+func SliceLast[T any](lst []T) T {
+	return lst[len(lst)-1]
 }
