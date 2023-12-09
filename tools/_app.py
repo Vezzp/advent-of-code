@@ -2,9 +2,10 @@ import dataclasses
 import enum
 import functools
 import inspect
-import subprocess
-import shutil
 import re
+import shutil
+import subprocess
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import (
@@ -13,26 +14,60 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Iterable,
+    Literal,
+    NotRequired,
     Optional,
+    Self,
+    TypeAlias,
+    TypedDict,
     cast,
 )
 
 import loguru
 import typer
-from typing_extensions import Self, TypedDict
-
 
 ROOT = Path(__file__).parent.parent
 TEMPLATE_ROOT = ROOT / "tools" / "templates"
 
 
+TEST_RE = re.compile(r"test_(?:p(?P<part>1|2)_)?(?P<idx>\d+)_(?P<type>in|out)")
+
+
+class ParsedTest(TypedDict):
+    part: NotRequired[Literal["1", "2"] | None]
+    idx: str
+    type: Literal["in", "out"]
+
+
+@dataclasses.dataclass(slots=True)
+class TestCase:
+    puzzle: Path | None = None
+    solution: Path | None = None
+
+    def __bool__(self) -> bool:
+        return self.puzzle is not None and self.solution is not None
+
+
+Part: TypeAlias = Annotated[
+    Optional[int],
+    typer.Option(
+        "-p",
+        "--part",
+        help="Which part to solve. Leave blank for both parts.",
+        min=1,
+        max=2,
+    ),
+]
+
+
 @dataclasses.dataclass
 class ParsedPuzzleName:
     PATTERN: ClassVar[re.Pattern[str]] = re.compile(
-        r"(?:---\s*)?Day\s+(?P<day>\d+):\s*(?P<name>.+\w)\s*(?:\s+---)?"
+        r"(?:---\s*Day\s*)?(?P<day>\d+)?:?\s*(?P<name>.+\w)\s*(?:\s+---)?"
     )
 
-    day: int
+    day: Optional[int]
     name: str
 
     def __post_init__(self) -> None:
@@ -53,7 +88,7 @@ class ParsedPuzzleName:
 
         group_dict = cast("GroupDict", match.groupdict())
         out = cls(
-            day=int(group_dict["day"]),
+            day=None if (day := group_dict.get("day")) is None else int(day),
             name=group_dict["name"],
         )
         return out
@@ -68,6 +103,12 @@ class Lang(str, enum.Enum):
     GOLANG = "go"
 
 
+LANG_TO_CMD = {
+    Lang.PYTHON: "python -OO",
+    Lang.GOLANG: "go run",
+}
+
+
 @dataclasses.dataclass(kw_only=True, slots=True)
 class CommonOpts:
     ATTRNAME: ClassVar[str] = "_common_opts_"
@@ -76,18 +117,18 @@ class CommonOpts:
         int,
         typer.Option("-y", "--year"),
     ] = datetime.now().year
+    day: Annotated[
+        int,
+        typer.Option("-d", "--day"),
+    ] = dataclasses.field(
+        default=...,  # type: ignore
+    )
     langs: Annotated[
         list[Lang],
         typer.Option("-l", "--lang"),
     ] = dataclasses.field(
         default=...,  # type: ignore
     )
-
-
-type DayOption = Annotated[
-    Optional[int],
-    typer.Option("-d", "--day"),
-]
 
 
 @functools.wraps(app.command)
@@ -136,21 +177,21 @@ def _patch_command_signature(__w: Callable, /) -> None:
 
 @command("setup", help="Setup directory and draft template for daily puzzle")
 def setup(
-    *,
-    ctx: typer.Context,
-    name: Annotated[str, typer.Option("-n", "--name")],
+    *, ctx: typer.Context, name: Annotated[str, typer.Option("-n", "--name")]
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     puzzle_name = ParsedPuzzleName.from_str(name.strip())
+    day_root = ROOT.joinpath(
+        "src",
+        f"year_{opts.year}",
+        f"day_{opts.day}_{puzzle_name.name}",
+    )
+    day_root.joinpath("input.txt").touch()
+
     for lang in opts.langs:
-        solution_root = ROOT.joinpath(
-            "src",
-            f"year_{opts.year}",
-            f"day_{puzzle_name.day}_{puzzle_name.name}",
-            f"lang_{lang.value}",
-        )
-        solution_name = f"main.{lang.value}"
-        solution_fpath = solution_root / solution_name
+        lang_root = day_root / f"lang_{lang.value}"
+        entrypoint_name = f"main.{lang.value}"
+        solution_fpath = lang_root / entrypoint_name
         if solution_fpath.exists():
             loguru.logger.warning(
                 f"Solution/ solution draft for Advent-of-Code {opts.year}, day {puzzle_name.day}, "
@@ -163,40 +204,97 @@ def setup(
             )
             solution_fpath.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(
-                TEMPLATE_ROOT / solution_name,
+                TEMPLATE_ROOT / entrypoint_name,
                 solution_fpath,
             )
-            solution_root.joinpath("input.txt").touch()
 
 
 @command("solve")
-def solve(
-    *,
-    ctx: typer.Context,
-    day: Annotated[str, typer.Option("-d", "--day")],
-    part: Annotated[
-        Optional[int],
-        typer.Option(
-            "-p",
-            "--part",
-        ),
-    ] = None,
-) -> None:
+def solve(*, ctx: typer.Context, part: Part = None) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
+    day_root = get_day_root(opts)
+    puzzle_fpath = day_root / "input.txt"
+
+    for lang, root in iter_lang_roots(opts, day_root):
+        run_inference(root, lang, part, puzzle_fpath)
+
+
+@command("test")
+def test(*, ctx: typer.Context, part: Part = None) -> None:
+    opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
+    day_root = get_day_root(opts)
+
+    tests = collect_tests(day_root)
+
+
+def get_day_root(opts: CommonOpts, /) -> Path:
     year_root = ROOT.joinpath("src", f"year_{opts.year}")
-    day_root = next(iter(year_root.glob(f"day_{day}*")))
+    if not year_root.exists():
+        raise RuntimeError(f"Year {opts.year} was not setup")
+
+    day_root = next(iter(year_root.glob(f"day_{opts.day}*")))
+    if not day_root.exists():
+        raise RuntimeError(f"Day {opts.day} was not setup")
+
+    return day_root
+
+
+def iter_lang_roots(
+    opts: CommonOpts, /, day_root: Path | None = None
+) -> Iterable[tuple[Lang, Path]]:
+    if day_root is None:
+        day_root = get_day_root(opts)
 
     for lang in opts.langs:
         lang_root = day_root / f"lang_{lang.value}"
+        if not lang_root.exists():
+            raise RuntimeError(f"Language {lang.value} was not setup")
 
-        input_fpath = lang_root / "input.txt"
-        solution_fpath = lang_root / f"main.{lang.value}"
-        subprocess.call(
-            f"pixi run go run {solution_fpath} -p {part} {input_fpath}",
-            shell=True,
-        )
+        yield (lang, lang_root)
 
 
-# @app.command("test")
-# def test():
-#     ...
+def run_inference(root: Path, lang: Lang, part: int | None, path: Path) -> None:
+    entrypoint = root / f"main.{lang.value}"
+    subprocess.check_call(
+        f"pixi run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}",
+        shell=True,
+    )
+
+
+def collect_tests(root: Path, /) -> dict[str, dict[Literal[1, 2], TestCase]]:
+    idx_to_parsed_test: dict[str, list[tuple[ParsedTest, Path]]] = defaultdict(list)
+
+    for fpath in root.glob("*.txt"):
+        if (match := TEST_RE.match(fpath.stem)) is None:
+            continue
+        parsed_test = cast(ParsedTest, match.groupdict())
+        idx_to_parsed_test[parsed_test["idx"]].append((parsed_test, fpath))
+
+    out: dict[str, dict[Literal[1, 2], TestCase]] = defaultdict(
+        lambda: defaultdict(TestCase)
+    )
+    for idx, tests in idx_to_parsed_test.items():
+        for test, fpath in tests:
+            match part := test.get("test"):
+                case None:
+                    parts = (1, 2)
+                case "1":
+                    parts = (1,)
+                case "2":
+                    parts = (2,)
+                case _:
+                    raise RuntimeError(f"Part {part} is not supported")
+
+            for part in parts:
+                test_case = out[idx][part]
+                match test["type"]:
+                    case "in":
+                        test_case.puzzle = fpath
+                    case "out":
+                        test_case.solution = fpath
+                    case _:
+                        raise RuntimeError(f"Test type {test['type']} is not supported")
+
+    print(out)
+
+    return out

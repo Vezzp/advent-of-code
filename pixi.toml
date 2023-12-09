@@ -9,6 +9,7 @@ platforms = ["osx-arm64"]
 [tasks]
 setup = "python -OO -m tools setup"
 solve = "python -OO -m tools solve"
+test = "python -OO -m tools test"
 
 [dependencies]
 python = "3.12.*"
