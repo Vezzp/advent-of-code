@@ -36,10 +36,7 @@ func ParseRecordFromStr(s string) Record {
 }
 
 func SolveFirstPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	records := jogtrot.SliceMap(rows, ParseRecordFromStr)
 
 	solution := 0
@@ -57,10 +54,7 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	records := jogtrot.SliceMap(rows, ParseRecordFromStr)
 
 	solution := 0

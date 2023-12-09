@@ -63,10 +63,7 @@ func ParseNumbersFromStr(str string) []int {
 }
 
 func SolveFirstPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	cards := jogtrot.SliceMap(rows, ParseCardFromStr)
 
 	solution := 0
@@ -78,10 +75,7 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	cards := jogtrot.SliceMap(rows, ParseCardFromStr)
 	cardIDToCount := make(map[int]int64)
 	for _, card := range cards {

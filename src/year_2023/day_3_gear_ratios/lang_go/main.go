@@ -114,10 +114,7 @@ func IsPartNumber(number *Number, schematic *Schematic) bool {
 }
 
 func SolveFirstPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	schematic := Schematic{Rows: rows}
 
 	re := regexp.MustCompile(`\d+`)
@@ -142,10 +139,7 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	schematic := Schematic{Rows: rows}
 
 	re := regexp.MustCompile(`\d+`)

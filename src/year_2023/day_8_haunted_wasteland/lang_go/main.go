@@ -88,10 +88,7 @@ func (j *Journey) MakeStep() {
 }
 
 func ParseDesertMapFromFile(filepath string) DesertMap {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	directions := rows[0]
 	network := make(Network)
 	var src, ldst, rdst string

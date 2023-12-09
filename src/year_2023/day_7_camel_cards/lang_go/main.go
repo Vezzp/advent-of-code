@@ -195,10 +195,7 @@ func ParseHandFromStr(str string) Hand {
 }
 
 func SolveFirstPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	camelBids := jogtrot.SliceMap(rows, ParseCamelBidFromStr)
 	sort.Slice(
 		camelBids,
@@ -216,10 +213,7 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	camelBids := jogtrot.SliceMap(rows, ParseCamelBidFromStr)
 	for idx := 0; idx < len(camelBids); idx++ {
 		camelBids[idx].Hand.ReplaceMap(map[Card]Card{Jack: Joker})

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-func ReadFileRows(filepath string) ([]string, error) {
+func ReadFileRows(filepath string) []string {
 	var rows []string
 	file, err := os.Open(filepath)
 	defer func() {
@@ -19,7 +19,7 @@ func ReadFileRows(filepath string) ([]string, error) {
 	}()
 
 	if err != nil {
-		return rows, err
+		panic(err)
 	}
 
 	scanner := bufio.NewScanner(file)
@@ -28,7 +28,7 @@ func ReadFileRows(filepath string) ([]string, error) {
 		rows = append(rows, scanner.Text())
 	}
 
-	return rows, nil
+	return rows
 }
 
 func LoWrapIndex[P, R any](fn func(P) R) func(P, int) R {

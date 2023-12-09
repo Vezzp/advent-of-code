@@ -100,10 +100,7 @@ func ParseRoundFromStr(str string) Round {
 
 func SolveFirstPart(filepath string) {
 	target := Configuration{R: 12, G: 13, B: 14}
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 
 	solution := jogtrot.SliceSumBy(
 		jogtrot.SliceFilter(
@@ -119,10 +116,7 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	rows, err := jogtrot.ReadFileRows(filepath)
-	if err != nil {
-		panic(err)
-	}
+	rows := jogtrot.ReadFileRows(filepath)
 	games := jogtrot.SliceMap(rows, ParseGameFromStr)
 
 	solution := int64(0)
