@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -12,15 +13,13 @@ import (
 
 type Record []int
 
-func (r Record) Diff() (Record, bool) {
-	allZeros := true
-	newRecord := Record{}
+func (r Record) Diff() Record {
+	out := Record{}
 	for idx := 1; idx < len(r); idx++ {
 		diff := r[idx] - r[idx-1]
-		allZeros = (allZeros && diff == 0)
-		newRecord = append(newRecord, diff)
+		out = append(out, diff)
 	}
-	return newRecord, allZeros
+	return out
 }
 
 func ParseRecordFromStr(s string) Record {
@@ -45,13 +44,12 @@ func SolveFirstPart(filepath string) {
 
 	solution := 0
 	for _, record := range records {
-		ok := false
-		record_ := record
-		placeholders := []int{record_[len(record_)-1]}
-		for !ok {
-			record_, ok = record_.Diff()
-			placeholders = append(placeholders, record_[len(record_)-1])
+		placeholders := []int{jogtrot.SliceLast(record)}
+		for !jogtrot.SliceAll(record, func(i int) bool { return i == 0 }) {
+			record = record.Diff()
+			placeholders = append(placeholders, jogtrot.SliceLast(record))
 		}
+
 		solution += jogtrot.SliceSum(placeholders)
 	}
 
@@ -59,7 +57,27 @@ func SolveFirstPart(filepath string) {
 }
 
 func SolveSecondPart(filepath string) {
-	solution := "unimplemented ..."
+	rows, err := jogtrot.ReadFileRows(filepath)
+	if err != nil {
+		panic(err)
+	}
+	records := jogtrot.SliceMap(rows, ParseRecordFromStr)
+
+	solution := 0
+	for _, record := range records {
+		placeholders := []int{record[0]}
+		for !jogtrot.SliceAll(record, func(i int) bool { return i == 0 }) {
+			record = record.Diff()
+			placeholders = append(placeholders, record[0])
+		}
+
+		slices.Reverse(placeholders)
+		solution += jogtrot.SliceReduce(
+			placeholders,
+			func(lhs, rhs int) int { return rhs - lhs },
+		)
+	}
+
 	jogtrot.PrintSolution(2, solution)
 }
 
