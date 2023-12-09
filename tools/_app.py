@@ -195,7 +195,15 @@ def setup_handler(
         f"year_{opts.year}",
         f"day_{opts.day}_{puzzle_name.name}",
     )
-    day_root.joinpath("input.txt").touch()
+    day_root.mkdir(parents=True, exist_ok=True)
+    for filename in (
+        "input.txt",
+        "test_p1_1_in.txt",
+        "test_p1_1_out.txt",
+        "test_p2_1_in.txt",
+        "test_p2_1_out.txt",
+    ):
+        day_root.joinpath(filename).touch()
 
     for lang in opts.langs:
         lang_root = day_root / f"lang_{lang.value}"
@@ -229,20 +237,18 @@ def solve_handler(*, ctx: typer.Context, part: Part = None) -> None:
 
 
 @command("test")
-def test_handler(*, ctx: typer.Context, part: Part = None) -> None:
+def test_handler(
+    *,
+    ctx: typer.Context,
+    part: Part = None,
+    suppress_stdout: Annotated[
+        bool, typer.Option("-s/-S", "--stdout/--no-stdout")
+    ] = True,
+) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     day_root = get_day_root(opts)
 
-    match part:
-        case None:
-            parts = (1, 2)
-        case 1:
-            parts = (1,)
-        case 2:
-            parts = (2,)
-        case _:
-            raise RuntimeError
-
+    parts = resolve_parts(part)
     tests = collect_tests(day_root)
 
     for lang, lang_root in iter_lang_roots(opts, day_root):
@@ -282,7 +288,7 @@ def test_handler(*, ctx: typer.Context, part: Part = None) -> None:
                             lang,
                             test_part,
                             test_case.puzzle,
-                            suppress_stdout=True,
+                            suppress_stdout=suppress_stdout,
                         )[0]
                         self.assertEqual(solution["answer"], answer)
 
@@ -327,6 +333,7 @@ def run_inference(
     entrypoint = root / f"main.{lang.value}"
 
     parsed_solutions: list[ParsedSolution] = []
+    parts = resolve_parts(part)
 
     # https://gist.github.com/nawatts/e2cdca610463200c12eac2a14efc0bfb
     def stdout_handler(stream: TextIO) -> None:
@@ -340,7 +347,9 @@ def run_inference(
         parsed_solutions.append(parsed_solution)
 
     proc = subprocess.Popen(
-        (cmd := f"pixi run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}").split(),
+        (
+            cmd := f"pixi -q run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}"
+        ).split(),
         bufsize=1,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -351,9 +360,8 @@ def run_inference(
     assert proc.stdout is not None
     selector.register(proc.stdout, selectors.EVENT_READ, stdout_handler)
 
-    while proc.poll() is None:
-        events = selector.select()
-        for key, _ in events:
+    while len(parsed_solutions) != len(parts):
+        for key, _ in selector.select():
             key.data(key.fileobj)
 
     if (return_code := proc.wait()) != 0:
@@ -381,16 +389,7 @@ def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
     )
     for idx, tests in idx_to_parsed_test.items():
         for test, fpath in tests:
-            match part := test.get("part"):
-                case None:
-                    parts = (1, 2)
-                case "1":
-                    parts = (1,)
-                case "2":
-                    parts = (2,)
-                case _:
-                    raise RuntimeError(f"Part {part} is not supported")
-
+            parts = resolve_parts(test.get("part"))
             for part in parts:
                 test_case = grouped_tests[idx][part]
                 match test["type"]:
@@ -412,3 +411,16 @@ def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
     )
 
     return out
+
+
+def resolve_parts(part: int | None | str, /) -> tuple[Literal[1, 2], ...]:
+    match part:
+        case None:
+            parts = (1, 2)
+        case "1" | 1:
+            parts = (1,)
+        case "2" | 2:
+            parts = (2,)
+        case _:
+            raise RuntimeError(f"Part {part} is not supported")
+    return parts
