@@ -350,7 +350,7 @@ def run_inference(
 
     proc = subprocess.Popen(
         (
-            cmd := f"pixi -q run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}"
+            cmd := f"pixi -q run {LANG_TO_CMD[lang]} {entrypoint} -p {part} -i {path}"
         ).split(),
         bufsize=1,
         stdout=subprocess.PIPE,
