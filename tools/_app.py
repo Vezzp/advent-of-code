@@ -1,3 +1,4 @@
+import _thread
 import dataclasses
 import enum
 import functools
@@ -8,6 +9,7 @@ import selectors
 import shutil
 import subprocess
 import sys
+import threading
 import unittest
 from collections import defaultdict
 from datetime import datetime
@@ -360,16 +362,29 @@ def run_inference(
     assert proc.stdout is not None
     selector.register(proc.stdout, selectors.EVENT_READ, stdout_handler)
 
-    while len(parsed_solutions) != len(parts):
-        for key, _ in selector.select():
+    def handle(timeout: float | None = None) -> None:
+        for key, _ in selector.select(timeout):
             key.data(key.fileobj)
 
+    while proc.poll() is None:
+        handle()
+
     if (return_code := proc.wait()) != 0:
+        selector.close()
         raise subprocess.CalledProcessError(
             return_code,
             cmd,
             stderr=f"{proc.stderr}",
         )
+
+    # NOTE(vshlenskii): Two seconds must be enough to read remaining lines.
+    timer = threading.Timer(2, _thread.interrupt_main)
+    timer.start()
+    try:
+        while len(parsed_solutions) != len(parts):
+            handle()
+    finally:
+        timer.cancel()
     selector.close()
 
     return parsed_solutions
