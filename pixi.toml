@@ -1,0 +1,21 @@
+[project]
+name = "advent-of-code"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Vladislav Shlenskii <vladislav.shlenskii@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tasks]
+setup = "python -OO -m tools setup"
+solve = "python -OO -m tools solve"
+test = "python -OO -m tools test"
+
+[dependencies]
+python = "3.12.*"
+go = "1.21.4.*"
+
+[pypi-dependencies]
+typer = "*"
+typing-extensions = "*"
+loguru = "*"
