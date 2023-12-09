@@ -2,9 +2,13 @@ import dataclasses
 import enum
 import functools
 import inspect
+import operator
 import re
+import selectors
 import shutil
 import subprocess
+import sys
+import unittest
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +23,7 @@ from typing import (
     NotRequired,
     Optional,
     Self,
+    TextIO,
     TypeAlias,
     TypedDict,
     cast,
@@ -30,8 +35,10 @@ import typer
 ROOT = Path(__file__).parent.parent
 TEMPLATE_ROOT = ROOT / "tools" / "templates"
 
-
 TEST_RE = re.compile(r"test_(?:p(?P<part>1|2)_)?(?P<idx>\d+)_(?P<type>in|out)")
+SOLUTION_RE = re.compile(r"Part (?P<part>1|2) solution: (?P<answer>\w+)")
+
+app = typer.Typer()
 
 
 class ParsedTest(TypedDict):
@@ -40,25 +47,18 @@ class ParsedTest(TypedDict):
     type: Literal["in", "out"]
 
 
+class ParsedSolution(TypedDict):
+    part: Literal["1", "2"]
+    answer: str
+
+
 @dataclasses.dataclass(slots=True)
 class TestCase:
     puzzle: Path | None = None
-    solution: Path | None = None
+    answer: Path | None = None
 
     def __bool__(self) -> bool:
-        return self.puzzle is not None and self.solution is not None
-
-
-Part: TypeAlias = Annotated[
-    Optional[int],
-    typer.Option(
-        "-p",
-        "--part",
-        help="Which part to solve. Leave blank for both parts.",
-        min=1,
-        max=2,
-    ),
-]
+        return self.puzzle is not None and self.answer is not None
 
 
 @dataclasses.dataclass
@@ -94,7 +94,16 @@ class ParsedPuzzleName:
         return out
 
 
-app = typer.Typer()
+Part: TypeAlias = Annotated[
+    Optional[int],
+    typer.Option(
+        "-p",
+        "--part",
+        help="Which part to solve. Leave blank for both parts.",
+        min=1,
+        max=2,
+    ),
+]
 
 
 class Lang(str, enum.Enum):
@@ -176,7 +185,7 @@ def _patch_command_signature(__w: Callable, /) -> None:
 
 
 @command("setup", help="Setup directory and draft template for daily puzzle")
-def setup(
+def setup_handler(
     *, ctx: typer.Context, name: Annotated[str, typer.Option("-n", "--name")]
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
@@ -210,7 +219,7 @@ def setup(
 
 
 @command("solve")
-def solve(*, ctx: typer.Context, part: Part = None) -> None:
+def solve_handler(*, ctx: typer.Context, part: Part = None) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     day_root = get_day_root(opts)
     puzzle_fpath = day_root / "input.txt"
@@ -220,11 +229,64 @@ def solve(*, ctx: typer.Context, part: Part = None) -> None:
 
 
 @command("test")
-def test(*, ctx: typer.Context, part: Part = None) -> None:
+def test_handler(*, ctx: typer.Context, part: Part = None) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     day_root = get_day_root(opts)
 
+    match part:
+        case None:
+            parts = (1, 2)
+        case 1:
+            parts = (1,)
+        case 2:
+            parts = (2,)
+        case _:
+            raise RuntimeError
+
     tests = collect_tests(day_root)
+
+    for lang, lang_root in iter_lang_roots(opts, day_root):
+
+        class TextSubtestTestResult(unittest.TextTestResult):
+            def __init__(self, *args, **kwargs) -> None:
+                super().__init__(*args, **kwargs)
+                # NOTE(vshlenskii): If not use this, test case is counted as well, however
+                # I just want to count number of subtests only.
+                self._subtest_added: bool = False
+
+            def addSubTest(self, test, subtest, outcome):
+                super().addSubTest(test, subtest, outcome)
+                if self._subtest_added:
+                    self.testsRun += 1
+                else:
+                    self._subtest_added = True
+
+        class TestCase(unittest.TestCase):
+            def test(self) -> None:
+                for test_idx, test_part, test_case in tests:
+                    if test_part not in parts:
+                        continue
+
+                    assert test_case.puzzle is not None
+                    assert test_case.answer is not None
+
+                    answer = test_case.answer.read_text().splitlines()[0]
+
+                    with self.subTest(f"{test_idx = } {test_part = }"):
+                        solution = run_inference(
+                            lang_root,
+                            lang,
+                            test_part,
+                            test_case.puzzle,
+                            suppress_stdout=True,
+                        )[0]
+                        self.assertEqual(solution["answer"], answer)
+
+        test_runner = unittest.TextTestRunner(
+            stream=sys.stdout,
+            resultclass=TextSubtestTestResult,
+        )
+        test_runner.run(unittest.makeSuite(TestCase))
 
 
 def get_day_root(opts: CommonOpts, /) -> Path:
@@ -240,7 +302,9 @@ def get_day_root(opts: CommonOpts, /) -> Path:
 
 
 def iter_lang_roots(
-    opts: CommonOpts, /, day_root: Path | None = None
+    opts: CommonOpts,
+    /,
+    day_root: Path | None = None,
 ) -> Iterable[tuple[Lang, Path]]:
     if day_root is None:
         day_root = get_day_root(opts)
@@ -253,15 +317,53 @@ def iter_lang_roots(
         yield (lang, lang_root)
 
 
-def run_inference(root: Path, lang: Lang, part: int | None, path: Path) -> None:
+def run_inference(
+    root: Path, lang: Lang, part: int | None, path: Path, suppress_stdout: bool = False
+) -> list[ParsedSolution]:
     entrypoint = root / f"main.{lang.value}"
-    subprocess.check_call(
-        f"pixi run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}",
-        shell=True,
+
+    parsed_solutions: list[ParsedSolution] = []
+
+    # https://gist.github.com/nawatts/e2cdca610463200c12eac2a14efc0bfb
+    def stdout_handler(stream: TextIO) -> None:
+        line = stream.readline()
+        if not suppress_stdout:
+            sys.stdout.write(line)
+        if (match := SOLUTION_RE.match(line)) is None:
+            return None
+
+        parsed_solution = cast(ParsedSolution, match.groupdict())
+        parsed_solutions.append(parsed_solution)
+
+    proc = subprocess.Popen(
+        (cmd := f"pixi run {LANG_TO_CMD[lang]} {entrypoint} -p {part} {path}").split(),
+        bufsize=1,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
     )
 
+    selector = selectors.DefaultSelector()
+    assert proc.stdout is not None
+    selector.register(proc.stdout, selectors.EVENT_READ, stdout_handler)
 
-def collect_tests(root: Path, /) -> dict[str, dict[Literal[1, 2], TestCase]]:
+    while proc.poll() is None:
+        events = selector.select()
+        for key, _ in events:
+            key.data(key.fileobj)
+
+    if (return_code := proc.wait()) != 0:
+        raise subprocess.CalledProcessError(
+            return_code,
+            cmd,
+            stderr=f"{proc.stderr}",
+        )
+    selector.close()
+
+    return parsed_solutions
+
+
+def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
     idx_to_parsed_test: dict[str, list[tuple[ParsedTest, Path]]] = defaultdict(list)
 
     for fpath in root.glob("*.txt"):
@@ -270,12 +372,12 @@ def collect_tests(root: Path, /) -> dict[str, dict[Literal[1, 2], TestCase]]:
         parsed_test = cast(ParsedTest, match.groupdict())
         idx_to_parsed_test[parsed_test["idx"]].append((parsed_test, fpath))
 
-    out: dict[str, dict[Literal[1, 2], TestCase]] = defaultdict(
+    grouped_tests: dict[str, dict[Literal[1, 2], TestCase]] = defaultdict(
         lambda: defaultdict(TestCase)
     )
     for idx, tests in idx_to_parsed_test.items():
         for test, fpath in tests:
-            match part := test.get("test"):
+            match part := test.get("part"):
                 case None:
                     parts = (1, 2)
                 case "1":
@@ -286,15 +388,23 @@ def collect_tests(root: Path, /) -> dict[str, dict[Literal[1, 2], TestCase]]:
                     raise RuntimeError(f"Part {part} is not supported")
 
             for part in parts:
-                test_case = out[idx][part]
+                test_case = grouped_tests[idx][part]
                 match test["type"]:
                     case "in":
                         test_case.puzzle = fpath
                     case "out":
-                        test_case.solution = fpath
+                        test_case.answer = fpath
                     case _:
                         raise RuntimeError(f"Test type {test['type']} is not supported")
 
-    print(out)
+    out: list[tuple[str, Literal[1, 2], TestCase]] = sorted(
+        (
+            (idx, part, test)
+            for idx, tests in grouped_tests.items()
+            for part, test in tests.items()
+            if test
+        ),
+        key=operator.itemgetter(0),
+    )
 
     return out
