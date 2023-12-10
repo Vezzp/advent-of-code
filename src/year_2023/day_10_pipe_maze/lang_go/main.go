@@ -5,12 +5,40 @@ import (
 	"slices"
 
 	"advent_of_code/jogtrot"
+
+	"golang.org/x/exp/constraints"
 )
+
+type Tuple2d[T any] struct {
+	X T
+	Y T
+}
+
+type (
+	Shape2d      = Tuple2d[int]
+	Coordinate2d Tuple2d[int]
+)
+
+type Matrix[T constraints.Integer | constraints.Float | rune | byte] struct {
+	Data  []T
+	Shape Shape2d
+}
+
+func (m Matrix[_]) Height() int {
+	return m.Shape.Y
+}
+
+func (m Matrix[_]) Width() int {
+	return m.Shape.X
+}
+
+func (m Matrix[_]) Size() int {
+	return m.Shape.X * m.Shape.Y
+}
 
 type (
 	Vertex    = int
 	Graph     = map[Vertex][]Vertex
-	Map       []string
 	Adjacency int
 	Color     uint8
 )
@@ -21,6 +49,28 @@ const (
 	Black
 )
 
+func (c Coordinate2d) Translate(t Coordinate2d) Coordinate2d {
+	return Coordinate2d{
+		X: c.X + t.X,
+		Y: c.Y + t.Y,
+	}
+}
+
+func (c Coordinate2d) IsOutOfBounds() bool {
+	return c.X < 0 || c.Y < 0
+}
+
+func UnravelIndex2d(index int, shape Shape2d) Coordinate2d {
+	return Coordinate2d{
+		X: index % shape.X,
+		Y: index / shape.X,
+	}
+}
+
+func RavelIndex2d(c Coordinate2d, shape Shape2d) int {
+	return c.Y*shape.X + c.X
+}
+
 const (
 	N Adjacency = iota
 	S
@@ -28,125 +78,87 @@ const (
 	E
 )
 
-func (a Adjacency) AsTranslation() Coordinate {
+func (a Adjacency) AsTranslation() Coordinate2d {
 	switch a {
 	case N:
-		return Coordinate{X: 0, Y: -1}
+		return Coordinate2d{X: 0, Y: -1}
 	case S:
-		return Coordinate{X: 0, Y: 1}
+		return Coordinate2d{X: 0, Y: 1}
 	case W:
-		return Coordinate{X: -1, Y: 0}
+		return Coordinate2d{X: -1, Y: 0}
 	case E:
-		return Coordinate{X: 1, Y: 0}
+		return Coordinate2d{X: 1, Y: 0}
 	default:
 		panic("unexpected adjacency")
 	}
 }
 
-type Coordinate struct {
-	X int
-	Y int
-}
-
-func (c Coordinate) Translate(t Coordinate) Coordinate {
-	return Coordinate{
-		X: c.X + t.X,
-		Y: c.Y + t.Y,
-	}
-}
-
-func (c Coordinate) IsOutOfBounds() bool {
-	return c.X < 0 || c.Y < 0
-}
-
-func (m Map) ConvertVertexToCoordinate(v Vertex) Coordinate {
-	return Coordinate{X: v % m.Width(), Y: v / m.Width()}
-}
-
-func (m Map) ConvertCoordinateToVertex(c Coordinate) Vertex {
-	return c.Y*m.Width() + c.X
-}
-
-func (m Map) Height() int {
-	return len(m)
-}
-
-func (m Map) Width() int {
-	return len(m[0])
-}
-
-func (m Map) Size() int {
-	return m.Height() * m.Width()
-}
+type Map = Matrix[rune]
 
 type Maze struct {
 	Map   Map
-	Start Coordinate
+	Start Coordinate2d
 	Graph Graph
 }
 
 func NewMaze(m Map) Maze {
 	graph := make(Graph)
-	var start Coordinate
+	var start Coordinate2d
 	startOk := false
 
-	for y, row := range m {
-		for x, char := range row {
-			adjacencies := []Adjacency{}
-			coordinate := Coordinate{X: x, Y: y}
+	for idx, char := range m.Data {
+		adjacencies := []Adjacency{}
+		coordinate := UnravelIndex2d(idx, m.Shape)
 
-			switch char {
-			case 'S':
-				start = coordinate
-				startOk = true
-				continue
-			case '.':
-				continue
-			case '|':
-				adjacencies = append(adjacencies, N, S)
-			case '-':
-				adjacencies = append(adjacencies, E, W)
-			case 'L':
-				adjacencies = append(adjacencies, N, E)
-			case 'J':
-				adjacencies = append(adjacencies, N, W)
-			case '7':
-				adjacencies = append(adjacencies, S, W)
-			case 'F':
-				adjacencies = append(adjacencies, S, E)
-			}
-
-			vertex := m.ConvertCoordinateToVertex(coordinate)
-			neighbors := graph[vertex]
-			for _, adjacency := range adjacencies {
-				neighbor := coordinate.Translate(adjacency.AsTranslation())
-				if neighbor.IsOutOfBounds() {
-					continue
-				}
-				neighbors = append(neighbors, m.ConvertCoordinateToVertex(neighbor))
-			}
-			graph[vertex] = neighbors
+		switch char {
+		case 'S':
+			start = coordinate
+			startOk = true
+			continue
+		case '.':
+			continue
+		case '|':
+			adjacencies = append(adjacencies, N, S)
+		case '-':
+			adjacencies = append(adjacencies, E, W)
+		case 'L':
+			adjacencies = append(adjacencies, N, E)
+		case 'J':
+			adjacencies = append(adjacencies, N, W)
+		case '7':
+			adjacencies = append(adjacencies, S, W)
+		case 'F':
+			adjacencies = append(adjacencies, S, E)
 		}
+
+		neighbors := graph[idx]
+		for _, adjacency := range adjacencies {
+			neighbor := coordinate.Translate(adjacency.AsTranslation())
+			if neighbor.IsOutOfBounds() {
+				continue
+			}
+			neighbors = append(neighbors, RavelIndex2d(neighbor, m.Shape))
+		}
+		graph[idx] = neighbors
 	}
 
 	if !startOk {
 		panic("no start found")
-	}
-
-	{
-		startVertex := m.ConvertCoordinateToVertex(start)
-		startNeighbors := graph[startVertex]
+	} else {
+		idx := RavelIndex2d(start, m.Shape)
+		neighbors := graph[idx]
 		for _, adjacency := range []Adjacency{N, S, W, E} {
 			neighbor := start.Translate(adjacency.AsTranslation())
 			if neighbor.IsOutOfBounds() {
 				continue
 			}
-			neighborNeighbors := graph[m.ConvertCoordinateToVertex(neighbor)]
-			if slices.Contains(neighborNeighbors, startVertex) {
-				startNeighbors = append(startNeighbors, m.ConvertCoordinateToVertex(neighbor))
+			neighborIdx := RavelIndex2d(neighbor, m.Shape)
+			if slices.Contains(graph[neighborIdx], idx) {
+				neighbors = append(neighbors, neighborIdx)
 			}
 		}
-		graph[startVertex] = startNeighbors
+
+		graph[idx] = neighbors
 	}
 
 	return Maze{
@@ -158,7 +170,9 @@ func NewMaze(m Map) Maze {
 
 func FindMaxCycleStepIndex(m Maze) int {
 	colors := make([]Color, m.Map.Size())
-	return dfsMaxCycleStepIndex(m.Map.ConvertCoordinateToVertex(m.Start), m.Graph, &colors, 0)
+	out := dfsMaxCycleStepIndex(RavelIndex2d(m.Start, m.Map.Shape), m.Graph, &colors, 0)
+
+	return out
 }
 
 func dfsMaxCycleStepIndex(v Vertex, g Graph, colors *[]Color, length int) int {
@@ -169,13 +183,26 @@ func dfsMaxCycleStepIndex(v Vertex, g Graph, colors *[]Color, length int) int {
 			length = max(length, dfsMaxCycleStepIndex(neighbor, g, colors, length+1))
 		}
 	}
-	(*colors)[int(v)] = Black
 	return length
 }
 
-func SolveFirstPart(filepath string) {
+func ReadMap(filepath string) Map {
 	rows := jogtrot.ReadFileRows(filepath)
-	maze := NewMaze(Map(rows))
+	shape := Shape2d{X: len(rows[0]), Y: len(rows)}
+	data := make([]rune, 0, len(rows)*len(rows[0]))
+	for _, row := range rows {
+		data = append(data, []rune(row)...)
+	}
+	out := Matrix[rune]{
+		Shape: shape,
+		Data:  data,
+	}
+	return Map(out)
+}
+
+func SolveFirstPart(filepath string) {
+	mat := ReadMap(filepath)
+	maze := NewMaze(mat)
 	solution := (1 + FindMaxCycleStepIndex(maze)) / 2
 	jogtrot.PrintSolution(1, solution)
 }
