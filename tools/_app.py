@@ -118,6 +118,7 @@ class Lang(str, enum.Enum):
 LANG_TO_CMD = {
     Lang.PYTHON: f"PYTHONPATH={ROOT} python -OO",
     Lang.GOLANG: "go run",
+    Lang.CPP: f'clang++ -std=c++2b -I "${{CONDA_PREFIX}}/include" -I {ROOT}',
 }
 
 
