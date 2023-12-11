@@ -10,12 +10,11 @@ import (
 )
 
 type Tuple2d[T any] struct {
-	X T
-	Y T
+	X, Y T
 }
 
 type (
-	Shape2d      = Tuple2d[int]
+	Shape2d      Tuple2d[int]
 	Coordinate2d Tuple2d[int]
 )
 
@@ -24,191 +23,218 @@ type Matrix[T constraints.Integer | constraints.Float | rune | byte] struct {
 	Shape Shape2d
 }
 
-func (m Matrix[_]) Height() int {
-	return m.Shape.Y
+func (m Matrix[T]) At(c Coordinate2d) T {
+	return m.Data[RavelIndex2d(c, m.Shape)]
 }
 
-func (m Matrix[_]) Width() int {
-	return m.Shape.X
-}
+type Direction rune
 
-func (m Matrix[_]) Size() int {
-	return m.Shape.X * m.Shape.Y
+func (d Direction) String() string {
+	return string(d)
 }
-
-type (
-	Vertex    = int
-	Graph     = map[Vertex][]Vertex
-	Adjacency int
-	Color     uint8
-)
 
 const (
-	White Color = iota
-	Grey
-	Black
+	North Direction = 'N'
+	South Direction = 'S'
+	West  Direction = 'W'
+	East  Direction = 'E'
+)
+
+type Tile rune
+
+func (t Tile) String() string {
+	return string(t)
+}
+
+func (t Tile) Directions() []Direction {
+	var out []Direction
+	switch t {
+	case '|':
+		out = []Direction{North, South}
+	case '-':
+		out = []Direction{East, West}
+	case 'L':
+		out = []Direction{North, East}
+	case 'J':
+		out = []Direction{North, West}
+	case '7':
+		out = []Direction{South, West}
+	case 'F':
+		out = []Direction{South, East}
+	default:
+		panic(fmt.Sprintf("unexpected tile %s", t))
+	}
+	return out
+}
+
+const (
+	Vertical   Tile = '|'
+	Horizontal Tile = '-'
+	DownLeft   Tile = 'L'
+	RightUp    Tile = 'J'
+	LeftDown   Tile = '7'
+	UpRight    Tile = 'F'
+	Ground     Tile = '.'
+	Start      Tile = 'S'
 )
 
 func (c Coordinate2d) Translate(t Coordinate2d) Coordinate2d {
-	return Coordinate2d{
-		X: c.X + t.X,
-		Y: c.Y + t.Y,
-	}
+	return Coordinate2d{X: c.X + t.X, Y: c.Y + t.Y}
 }
 
-func (c Coordinate2d) IsOutOfBounds() bool {
-	return c.X < 0 || c.Y < 0
+func (c Coordinate2d) IsWithinBounds(s Shape2d) bool {
+	return c.X >= 0 && c.X < s.X && c.Y >= 0 && c.Y < s.Y
+}
+
+func (c Coordinate2d) Neighbors(s Shape2d) []Coordinate2d {
+	out := []Coordinate2d{}
+	for _, direction := range []Direction{North, South, West, East} {
+		neighbor := c.Translate(direction.AsTranslation())
+		if neighbor.IsWithinBounds(s) {
+			out = append(out, neighbor)
+		}
+	}
+	return out
 }
 
 func UnravelIndex2d(index int, shape Shape2d) Coordinate2d {
-	return Coordinate2d{
-		X: index % shape.X,
-		Y: index / shape.X,
-	}
+	return Coordinate2d{X: index % shape.X, Y: index / shape.X}
 }
 
 func RavelIndex2d(c Coordinate2d, shape Shape2d) int {
 	return c.Y*shape.X + c.X
 }
 
-const (
-	N Adjacency = iota
-	S
-	W
-	E
-)
-
-func (a Adjacency) AsTranslation() Coordinate2d {
-	switch a {
-	case N:
+func (d Direction) AsTranslation() Coordinate2d {
+	switch d {
+	case North:
 		return Coordinate2d{X: 0, Y: -1}
-	case S:
+	case South:
 		return Coordinate2d{X: 0, Y: 1}
-	case W:
+	case West:
 		return Coordinate2d{X: -1, Y: 0}
-	case E:
+	case East:
 		return Coordinate2d{X: 1, Y: 0}
 	default:
-		panic("unexpected adjacency")
+		panic("unexpected direction")
 	}
 }
 
-type Map = Matrix[rune]
+type (
+	Map   = Matrix[Tile]
+	Graph = map[Coordinate2d][]Coordinate2d
+)
 
-type Maze struct {
-	Map   Map
+type Cycle struct {
 	Start Coordinate2d
-	Graph Graph
+	Paths map[Coordinate2d]struct{}
 }
 
-func NewMaze(m Map) Maze {
+func FindCycle(m Map) Cycle {
 	graph := make(Graph)
-	var start Coordinate2d
+
+	var startCoordinate Coordinate2d
 	startOk := false
 
 	for idx, char := range m.Data {
-		adjacencies := []Adjacency{}
+		tile := Tile(char)
 		coordinate := UnravelIndex2d(idx, m.Shape)
+		var directions []Direction
 
-		switch char {
-		case 'S':
-			start = coordinate
+		switch tile {
+		case Start:
+			startCoordinate = coordinate
 			startOk = true
 			continue
-		case '.':
+		case Ground:
 			continue
-		case '|':
-			adjacencies = append(adjacencies, N, S)
-		case '-':
-			adjacencies = append(adjacencies, E, W)
-		case 'L':
-			adjacencies = append(adjacencies, N, E)
-		case 'J':
-			adjacencies = append(adjacencies, N, W)
-		case '7':
-			adjacencies = append(adjacencies, S, W)
-		case 'F':
-			adjacencies = append(adjacencies, S, E)
+		default:
+			directions = tile.Directions()
 		}
 
-		neighbors := graph[idx]
-		for _, adjacency := range adjacencies {
-			neighbor := coordinate.Translate(adjacency.AsTranslation())
-			if neighbor.IsOutOfBounds() {
-				continue
+		for _, direction := range directions {
+			neighbor := coordinate.Translate(direction.AsTranslation())
+			if neighbor.IsWithinBounds(m.Shape) {
+				graph[coordinate] = append(graph[coordinate], neighbor)
 			}
-			neighbors = append(neighbors, RavelIndex2d(neighbor, m.Shape))
+
 		}
-		graph[idx] = neighbors
+
 	}
 
 	if !startOk {
 		panic("no start found")
 	} else {
-		idx := RavelIndex2d(start, m.Shape)
-		neighbors := graph[idx]
-		for _, adjacency := range []Adjacency{N, S, W, E} {
-			neighbor := start.Translate(adjacency.AsTranslation())
-			if neighbor.IsOutOfBounds() {
-				continue
-			}
-			neighborIdx := RavelIndex2d(neighbor, m.Shape)
-			if slices.Contains(graph[neighborIdx], idx) {
-				neighbors = append(neighbors, neighborIdx)
+		for _, neighbor := range startCoordinate.Neighbors(m.Shape) {
+			if slices.Contains(graph[neighbor], startCoordinate) {
+				graph[startCoordinate] = append(graph[startCoordinate], neighbor)
 			}
 		}
-
-		graph[idx] = neighbors
 	}
 
-	return Maze{
-		Map:   m,
-		Start: start,
-		Graph: graph,
-	}
+	visits := make(map[Coordinate2d]struct{})
+	dfs(startCoordinate, graph, &visits)
+
+	return Cycle{Start: startCoordinate, Paths: visits}
 }
 
-func FindMaxCycleStepIndex(m Maze) int {
-	colors := make([]Color, m.Map.Size())
-	out := dfsMaxCycleStepIndex(RavelIndex2d(m.Start, m.Map.Shape), m.Graph, &colors, 0)
+func dfs(coordinate Coordinate2d, graph Graph, visits *map[Coordinate2d]struct{}) {
+	(*visits)[coordinate] = struct{}{}
 
-	return out
-}
-
-func dfsMaxCycleStepIndex(v Vertex, g Graph, colors *[]Color, length int) int {
-	(*colors)[v] = Grey
-	for _, neighbor := range g[v] {
-		switch (*colors)[neighbor] {
-		case White:
-			length = max(length, dfsMaxCycleStepIndex(neighbor, g, colors, length+1))
+	for _, neighbor := range graph[coordinate] {
+		if _, ok := (*visits)[neighbor]; !ok {
+			dfs(neighbor, graph, visits)
 		}
 	}
-	return length
 }
 
-func ReadMap(filepath string) Map {
+func ReadPuzzle(filepath string) Map {
 	rows := jogtrot.ReadFileRows(filepath)
 	shape := Shape2d{X: len(rows[0]), Y: len(rows)}
-	data := make([]rune, 0, len(rows)*len(rows[0]))
+	data := make([]Tile, 0, len(rows)*len(rows[0]))
 	for _, row := range rows {
-		data = append(data, []rune(row)...)
+		data = append(data, []Tile(row)...)
 	}
-	out := Matrix[rune]{
-		Shape: shape,
-		Data:  data,
-	}
+	out := Map{Shape: shape, Data: data}
 	return Map(out)
 }
 
 func SolveFirstPart(filepath string) {
-	mat := ReadMap(filepath)
-	maze := NewMaze(mat)
-	solution := (1 + FindMaxCycleStepIndex(maze)) / 2
+	puzzle := ReadPuzzle(filepath)
+	cycle := FindCycle(puzzle)
+
+	solution := (1 + len(cycle.Paths)) / 2
 	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
-	solution := fmt.Sprintf("Unimplemented. No solution for %s", filepath)
+	puzzle := ReadPuzzle(filepath)
+	cycle := FindCycle(puzzle)
+
+	solution := 0
+	for idx := range puzzle.Data {
+		coordinate := UnravelIndex2d(idx, puzzle.Shape)
+		if _, ok := cycle.Paths[coordinate]; ok {
+			continue
+		}
+
+		intersectionCount := 0
+		for x := 0; x < coordinate.X; x++ {
+			cycleCoordinate := Coordinate2d{X: x, Y: coordinate.Y}
+			if _, ok := cycle.Paths[cycleCoordinate]; !ok {
+				continue
+			}
+
+			switch puzzle.At(cycleCoordinate) {
+			case Vertical, RightUp, DownLeft:
+				intersectionCount++
+			}
+		}
+		if intersectionCount%2 == 1 {
+			solution += 1
+		}
+	}
+
 	jogtrot.PrintSolution(2, solution)
 }
 
