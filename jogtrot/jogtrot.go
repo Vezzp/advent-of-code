@@ -10,6 +10,10 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+type Number interface {
+	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | uintptr | float32 | float64
+}
+
 func ReadFileRows(filepath string) []string {
 	var rows []string
 	file, err := os.Open(filepath)
@@ -95,7 +99,7 @@ func SliceFilter[T any](lst []T, fn func(T) bool) []T {
 	return out
 }
 
-func SliceSum[T constraints.Float | constraints.Integer](lst []T) T {
+func SliceSum[T Number](lst []T) T {
 	out := T(0)
 	for _, item := range lst {
 		out += item
@@ -103,7 +107,7 @@ func SliceSum[T constraints.Float | constraints.Integer](lst []T) T {
 	return out
 }
 
-func SliceSumBy[T any, R constraints.Float | constraints.Integer](lst []T, fn func(T) R) R {
+func SliceSumBy[T any, R Number](lst []T, fn func(T) R) R {
 	out := R(0)
 	for _, item := range lst {
 		out += fn(item)
@@ -194,4 +198,14 @@ func Abs[T constraints.Integer | constraints.Float](n T) T {
 
 func ManhattanDistance2d(lhs, rhs Coordinate2d) int {
 	return Abs(lhs.X-rhs.X) + Abs(lhs.Y-rhs.Y)
+}
+
+func MinMax[T Number](n T, ns ...T) (T, T) {
+	min_ := n
+	max_ := n
+	for _, item := range ns {
+		min_ = min(min_, item)
+		max_ = max(max_, item)
+	}
+	return min_, max_
 }

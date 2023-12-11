@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"advent_of_code/jogtrot"
 )
 
@@ -18,7 +16,7 @@ func ReadUniverseFromFile(filepath string) Universe {
 	return Universe{Data: data, Shape: shape}
 }
 
-func SolveFirstPart(filepath string) {
+func Solve(filepath string, coefficient int) int64 {
 	universe := ReadUniverseFromFile(filepath)
 
 	expansion := jogtrot.Tuple2d[[]bool]{
@@ -36,40 +34,39 @@ func SolveFirstPart(filepath string) {
 		}
 	}
 
-	solution := 0
+	solution := int64(0)
+	numExpansions := int64(0)
 	for lidx, lhs := range galaxies[:len(galaxies)-1] {
 		for _, rhs := range galaxies[lidx:] {
-			solution += jogtrot.ManhattanDistance2d(lhs, rhs)
+			solution += int64(jogtrot.ManhattanDistance2d(lhs, rhs))
 
-			minX := lhs.X
-			maxX := rhs.X
-			if lhs.X > rhs.X {
-				minX, maxX = rhs.X, lhs.X
-			}
+			minX, maxX := jogtrot.MinMax(lhs.X, rhs.X)
 			for x := minX; x <= maxX; x++ {
 				if expansion.X[x] {
-					solution += 1
+					numExpansions += 1
 				}
 			}
 
-			minY := lhs.Y
-			maxY := rhs.Y
-			if lhs.Y > rhs.Y {
-				minY, maxY = rhs.Y, lhs.Y
-			}
+			minY, maxY := jogtrot.MinMax(lhs.Y, rhs.Y)
 			for y := minY; y <= maxY; y++ {
 				if expansion.Y[y] {
-					solution += 1
+					numExpansions += 1
 				}
 			}
 		}
 	}
+	solution += int64(numExpansions) * (int64(coefficient) - 1)
 
+	return solution
+}
+
+func SolveFirstPart(filepath string) {
+	solution := Solve(filepath, 2)
 	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
-	solution := fmt.Sprintf("Unimplemented. No solution for %s", filepath)
+	solution := Solve(filepath, 1000000)
 	jogtrot.PrintSolution(2, solution)
 }
 
