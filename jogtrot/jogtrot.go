@@ -155,6 +155,14 @@ func SliceLast[T any](lst []T) T {
 	return lst[len(lst)-1]
 }
 
+func NewDefaultSlice[T any](n int, v T) []T {
+	out := make([]T, 0, n)
+	for i := 0; i < n; i++ {
+		out = append(out, v)
+	}
+	return out
+}
+
 func ParseCommandLine() ([]string, string) {
 	var part, input string
 
@@ -175,4 +183,15 @@ func ParseCommandLine() ([]string, string) {
 	}
 
 	return parts, input
+}
+
+func Abs[T constraints.Integer | constraints.Float](n T) T {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
+func ManhattanDistance2d(lhs, rhs Coordinate2d) int {
+	return Abs(lhs.X-rhs.X) + Abs(lhs.Y-rhs.Y)
 }
