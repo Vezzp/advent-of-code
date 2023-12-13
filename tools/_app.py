@@ -30,6 +30,7 @@ from typing import (
     TypeAlias,
     TypedDict,
     cast,
+    overload,
 )
 
 import loguru
@@ -44,15 +45,16 @@ SOLUTION_RE = re.compile(r"Part (?P<part>1|2) solution: (?P<answer>\w+)")
 app = typer.Typer()
 
 
-class ParsedTest(TypedDict):
-    part: NotRequired[Literal["1", "2"] | None]
-    idx: str
-    type: Literal["in", "out"]
+if TYPE_CHECKING:
 
+    class ParsedTest(TypedDict):
+        part: NotRequired[Literal["1", "2"] | None]
+        idx: str
+        type: Literal["in", "out"]
 
-class ParsedSolution(TypedDict):
-    part: Literal["1", "2"]
-    answer: str
+    class ParsedSolution(TypedDict):
+        part: Literal["1", "2"]
+        answer: str
 
 
 @dataclasses.dataclass(slots=True)
@@ -115,10 +117,58 @@ class Lang(str, enum.Enum):
     GOLANG = "go"
 
 
-LANG_TO_CMD = {
-    Lang.PYTHON: f"PYTHONPATH={ROOT} python -OO",
-    Lang.GOLANG: "go run",
-    Lang.CPP: f'clang++ -std=c++2b -I "${{CONDA_PREFIX}}/include" -I {ROOT}',
+if TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class CompilationCommandMaker(Protocol):
+        def __call__(self, *, entrypoint: Path) -> str:
+            ...
+
+    class InferenceCommandMaker(Protocol):
+        @overload
+        def __call__(self) -> str:
+            ...
+
+        @overload
+        def __call__(self, *, entrypoint: Path) -> str:
+            ...
+
+        def __call__(self, *, entrypoint: Path | None = None) -> str:
+            ...
+
+
+@dataclasses.dataclass(slots=True, kw_only=True)
+class SolutionSubcommandMaker:
+    PREFIX: ClassVar[str] = "pixi -q run"
+
+    compilation: "CompilationCommandMaker | None"
+    inference: "InferenceCommandMaker"
+
+    def make_compilation_subcommand(self, *, entrypoint: Path) -> str | None:
+        if self.compilation is None:
+            return None
+        return f"{self.PREFIX} {self.compilation(entrypoint=entrypoint)}"
+
+    def make_inference_subcommand(self, *, entrypoint: Path) -> str:
+        if self.compilation is None:
+            cmd = self.inference(entrypoint=entrypoint)
+        else:
+            cmd = self.inference()
+        return f"{self.PREFIX} {cmd}"
+
+
+LANG_TO_SUBCOMMAND_MAKER: dict[Lang, SolutionSubcommandMaker] = {
+    Lang.PYTHON: SolutionSubcommandMaker(
+        compilation=None,
+        inference=f"PYTHONPATH={ROOT} python -OO {{entrypoint}}".format,
+    ),
+    Lang.GOLANG: SolutionSubcommandMaker(
+        compilation=None, inference="go run {entrypoint}".format
+    ),
+    Lang.CPP: SolutionSubcommandMaker(
+        compilation=f'clang++ -std=c++2b -I "{ROOT}/.pixi/env/include" -I {ROOT} {{entrypoint}} -o ./a.out'.format,
+        inference="./a.out".format,
+    ),
 }
 
 
@@ -253,7 +303,7 @@ def solve_handler(*, ctx: typer.Context, part: Part = None) -> None:
     puzzle_fpath = day_root / "input.txt"
 
     for lang, root in iter_lang_roots(opts, day_root):
-        run_inference(root, lang, part, puzzle_fpath)
+        solve_puzzle(root, lang, part, puzzle_fpath)
 
 
 @command("test")
@@ -303,7 +353,7 @@ def test_handler(
                     answer = answer_lines[0]
 
                     with self.subTest(f"{test_idx = } {test_part = }"):
-                        solution = run_inference(
+                        solution = solve_puzzle(
                             lang_root,
                             lang,
                             test_part,
@@ -352,12 +402,12 @@ def iter_lang_roots(
         yield (lang, lang_root)
 
 
-def run_inference(
+def solve_puzzle(
     root: Path, lang: Lang, part: int | None, path: Path, suppress_stdout: bool = False
-) -> list[ParsedSolution]:
+) -> list["ParsedSolution"]:
     entrypoint = root / f"main.{lang.value}"
 
-    parsed_solutions: list[ParsedSolution] = []
+    parsed_solutions: list["ParsedSolution"] = []
     parts = resolve_parts(part)
 
     # https://gist.github.com/nawatts/e2cdca610463200c12eac2a14efc0bfb
@@ -368,13 +418,26 @@ def run_inference(
         if (match := SOLUTION_RE.match(line)) is None:
             return None
 
-        parsed_solution = cast(ParsedSolution, match.groupdict())
+        parsed_solution = cast("ParsedSolution", match.groupdict())
         parsed_solutions.append(parsed_solution)
 
+    subcommand_maker = LANG_TO_SUBCOMMAND_MAKER[lang]
+    if (
+        compilation_subcommand := subcommand_maker.make_compilation_subcommand(
+            entrypoint=entrypoint
+        )
+    ) is not None:
+        loguru.logger.info("Compiling ...")
+        subprocess.check_call(compilation_subcommand, shell=True)
+        loguru.logger.info("Compiling OK")
+
+    inference_subcommand = subcommand_maker.make_inference_subcommand(
+        entrypoint=entrypoint
+    )
+    inference_command = f"{inference_subcommand} -i {path!s} -p {part}"
+    loguru.logger.info(f"Running inference {inference_command}")
     proc = subprocess.Popen(
-        (
-            cmd := f"pixi -q run {LANG_TO_CMD[lang]} {entrypoint} -p {part} -i {path}"
-        ).split(),
+        inference_command.split(),
         bufsize=1,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -392,7 +455,7 @@ def run_inference(
     while proc.poll() is None:
         handle()
 
-    # NOTE(vshlenskii): Two seconds must be enough to read remaining lines.
+    # NOTE(vshlenskii): This interval must be enough to read remaining lines.
     timer = threading.Timer(2, _thread.interrupt_main)
     timer.start()
     try:
@@ -406,7 +469,7 @@ def run_inference(
         selector.close()
         raise subprocess.CalledProcessError(
             return_code,
-            cmd,
+            inference_command,
             stderr=f"{proc.stderr}",
         )
 
@@ -414,12 +477,12 @@ def run_inference(
 
 
 def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
-    idx_to_parsed_test: dict[str, list[tuple[ParsedTest, Path]]] = defaultdict(list)
+    idx_to_parsed_test: dict[str, list[tuple["ParsedTest", Path]]] = defaultdict(list)
 
     for fpath in root.glob("*.txt"):
         if (match := TEST_RE.match(fpath.stem)) is None:
             continue
-        parsed_test = cast(ParsedTest, match.groupdict())
+        parsed_test = cast("ParsedTest", match.groupdict())
         idx_to_parsed_test[parsed_test["idx"]].append((parsed_test, fpath))
 
     grouped_tests: dict[str, dict[Literal[1, 2], TestCase]] = defaultdict(
