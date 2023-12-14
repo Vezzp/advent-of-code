@@ -7,40 +7,27 @@ import (
 	"advent_of_code/jogtrot"
 )
 
-type Direction rune
-
-func (d Direction) String() string {
-	return string(d)
-}
-
-const (
-	North Direction = 'N'
-	South Direction = 'S'
-	West  Direction = 'W'
-	East  Direction = 'E'
-)
-
 type Tile rune
 
 func (t Tile) String() string {
 	return string(t)
 }
 
-func (t Tile) Directions() []Direction {
-	var out []Direction
+func (t Tile) Directions() []jogtrot.Direction {
+	var out []jogtrot.Direction
 	switch t {
 	case '|':
-		out = []Direction{North, South}
+		out = []jogtrot.Direction{jogtrot.North, jogtrot.South}
 	case '-':
-		out = []Direction{East, West}
+		out = []jogtrot.Direction{jogtrot.East, jogtrot.West}
 	case 'L':
-		out = []Direction{North, East}
+		out = []jogtrot.Direction{jogtrot.North, jogtrot.East}
 	case 'J':
-		out = []Direction{North, West}
+		out = []jogtrot.Direction{jogtrot.North, jogtrot.West}
 	case '7':
-		out = []Direction{South, West}
+		out = []jogtrot.Direction{jogtrot.South, jogtrot.West}
 	case 'F':
-		out = []Direction{South, East}
+		out = []jogtrot.Direction{jogtrot.South, jogtrot.East}
 	default:
 		panic(fmt.Sprintf("unexpected tile %s", t))
 	}
@@ -60,28 +47,13 @@ const (
 
 func FindCoordinateNeighbors(coordinate jogtrot.Coordinate2d, shape jogtrot.Shape2d) []jogtrot.Coordinate2d {
 	out := []jogtrot.Coordinate2d{}
-	for _, direction := range []Direction{North, South, West, East} {
+	for _, direction := range []jogtrot.Direction{jogtrot.North, jogtrot.South, jogtrot.West, jogtrot.East} {
 		neighbor := coordinate.Translate(direction.AsTranslation())
 		if neighbor.IsWithinBounds(shape) {
 			out = append(out, neighbor)
 		}
 	}
 	return out
-}
-
-func (d Direction) AsTranslation() jogtrot.Coordinate2d {
-	switch d {
-	case North:
-		return jogtrot.Coordinate2d{X: 0, Y: -1}
-	case South:
-		return jogtrot.Coordinate2d{X: 0, Y: 1}
-	case West:
-		return jogtrot.Coordinate2d{X: -1, Y: 0}
-	case East:
-		return jogtrot.Coordinate2d{X: 1, Y: 0}
-	default:
-		panic("unexpected direction")
-	}
 }
 
 type (
@@ -103,7 +75,7 @@ func FindCycle(m Map) Cycle {
 	for idx, char := range m.Data {
 		tile := Tile(char)
 		coordinate := jogtrot.UnravelIndex2d(idx, m.Shape)
-		var directions []Direction
+		var directions []jogtrot.Direction
 
 		switch tile {
 		case Start:
