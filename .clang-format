@@ -1,0 +1,19 @@
+---
+UseTab: Never
+BasedOnStyle: Google
+---
+Language: Proto
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments: true
+ReflowComments: true
+ColumnLimit: 0
+---
+Language: Cpp
+AlignAfterOpenBracket: AlwaysBreak
+BasedOnStyle: Google
+PointerAlignment: Left
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+AlwaysBreakAfterDefinitionReturnType: All
+ColumnLimit: 90

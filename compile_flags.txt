@@ -1,0 +1,4 @@
+-I.
+-I.pixi/env/include
+-std=c++2b
+-fexperimental-library
