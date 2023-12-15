@@ -209,3 +209,28 @@ func MinMax[T Number](n T, ns ...T) (T, T) {
 	}
 	return min_, max_
 }
+
+func SliceRemoveIndex[T any](lst []T, i int) []T {
+	if i < 0 || i >= len(lst) {
+		return lst
+	}
+	return append(lst[:i], lst[i+1:]...)
+}
+
+func SliceFindFirst[T cmp.Ordered](lst []T, el T) int {
+	for i, item := range lst {
+		if item == el {
+			return i
+		}
+	}
+	return -1
+}
+
+func SliceFindFirstBy[T any](lst []T, fn func(T) bool) int {
+	for i, item := range lst {
+		if fn(item) {
+			return i
+		}
+	}
+	return -1
+}
