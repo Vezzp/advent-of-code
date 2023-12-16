@@ -44,6 +44,25 @@ type Matrix[T any] struct {
 	Shape Shape2d
 }
 
+func (m Matrix[T]) Fill(t T) Matrix[T] {
+	out := NewMatrixWithShape[T](m.Shape)
+	out.Fill_(t)
+	return out
+}
+
+func (m Matrix[T]) Fill_(t T) {
+	for i := range m.Data {
+		m.Data[i] = t
+	}
+}
+
+func NewMatrixWithShape[T any](s Shape2d) Matrix[T] {
+	return Matrix[T]{
+		Data:  make([]T, s.X*s.Y),
+		Shape: s,
+	}
+}
+
 func (m Matrix[T]) At(c Coordinate2d) T {
 	return m.Data[RavelIndex2d(c, m.Shape)]
 }

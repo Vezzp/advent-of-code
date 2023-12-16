@@ -125,7 +125,6 @@ solve_first_part(std::string_view filepath) -> void {
 auto
 solve_second_part(std::string_view filepath) -> void {
   const auto race = parse_race_from_file_with_broken_kerning(filepath);
-  fmt::print("{} {}\n", race.time, race.distance);
 
   auto quadric_equation = race.resolve_distance_trajectory();
   quadric_equation.c = -race.distance;

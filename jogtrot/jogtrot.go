@@ -217,6 +217,14 @@ func SliceRemoveIndex[T any](lst []T, i int) []T {
 	return append(lst[:i], lst[i+1:]...)
 }
 
+func SliceUnorderedRemoveIndex[T any](lst []T, i int) []T {
+	if i < 0 || i >= len(lst) {
+		return lst
+	}
+	lst[i], lst[len(lst)-1] = lst[len(lst)-1], lst[i]
+	return lst[:len(lst)-1]
+}
+
 func SliceFindFirst[T cmp.Ordered](lst []T, el T) int {
 	for i, item := range lst {
 		if item == el {
