@@ -45,7 +45,7 @@ type Matrix[T any] struct {
 }
 
 func (m Matrix[T]) Fill(t T) Matrix[T] {
-	out := NewMatrixWithShape[T](m.Shape)
+	out := NewMatrixFromShape[T](m.Shape)
 	out.Fill_(t)
 	return out
 }
@@ -56,7 +56,7 @@ func (m Matrix[T]) Fill_(t T) {
 	}
 }
 
-func NewMatrixWithShape[T any](s Shape2d) Matrix[T] {
+func NewMatrixFromShape[T any](s Shape2d) Matrix[T] {
 	return Matrix[T]{
 		Data:  make([]T, s.X*s.Y),
 		Shape: s,
@@ -100,7 +100,7 @@ func (c Coordinate2d) IsWithinBounds(s Shape2d) bool {
 	return c.X >= 0 && c.X < s.X && c.Y >= 0 && c.Y < s.Y
 }
 
-func StringifyRuneMatrix(m Matrix[rune]) string {
+func RuneMatrixStringer(m Matrix[rune]) string {
 	var sb strings.Builder
 	for y := 0; y < m.Shape.Y; y++ {
 		for x := 0; x < m.Shape.X; x++ {
@@ -111,4 +111,14 @@ func StringifyRuneMatrix(m Matrix[rune]) string {
 		}
 	}
 	return sb.String()
+}
+
+func NewRuneMatrixFromRows(rows []string) Matrix[rune] {
+	out := NewMatrixFromShape[rune](Shape2d{X: len(rows[0]), Y: len(rows)})
+	for y, row := range rows {
+		for x, ch := range row {
+			out.Data[RavelIndex2d(Coordinate2d{X: x, Y: y}, out.Shape)] = ch
+		}
+	}
+	return out
 }

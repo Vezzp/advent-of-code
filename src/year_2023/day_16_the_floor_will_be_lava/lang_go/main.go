@@ -30,22 +30,6 @@ func (b Beam) MoveDirection(d jogtrot.Direction) Beam {
 
 type Contraption = jogtrot.Matrix[rune]
 
-func ReadContraptionFromFile(filepath string) Contraption {
-	rows := jogtrot.ReadFileRows(filepath)
-	contraption := Contraption(
-		jogtrot.NewMatrixWithShape[rune](
-			jogtrot.Shape2d{X: len(rows[0]), Y: len(rows)},
-		),
-	)
-	for y, row := range rows {
-		for x, ch := range row {
-			idx := jogtrot.RavelIndex2d(jogtrot.Coordinate2d{X: x, Y: y}, contraption.Shape)
-			contraption.Data[idx] = ch
-		}
-	}
-	return contraption
-}
-
 func EvolveBeam(beam Beam, contraption Contraption) []Beam {
 	srcIdx := jogtrot.RavelIndex2d(beam.Coordinate, contraption.Shape)
 	srcRune := contraption.Data[srcIdx]
@@ -129,13 +113,16 @@ func EnergizeContraption(contraption Contraption, startBeam Beam) int {
 }
 
 func SolveFirstPart(filepath string) {
+	rows := jogtrot.ReadFileRows(filepath)
+	contraption := Contraption(jogtrot.NewRuneMatrixFromRows(rows))
 	startBeam := Beam{Coordinate: jogtrot.Coordinate2d{X: 0, Y: 0}, Direction: jogtrot.East}
-	solution := EnergizeContraption(ReadContraptionFromFile(filepath), startBeam)
+	solution := EnergizeContraption(contraption, startBeam)
 	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
-	contraption := ReadContraptionFromFile(filepath)
+	rows := jogtrot.ReadFileRows(filepath)
+	contraption := Contraption(jogtrot.NewRuneMatrixFromRows(rows))
 	borderCoordinates := make([]jogtrot.Coordinate2d, 0, 2*(contraption.Height()+contraption.Width()))
 	for _, y := range []int{0, contraption.Shape.Y - 1} {
 		for x := 0; x < contraption.Shape.X; x++ {
