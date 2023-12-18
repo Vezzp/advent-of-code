@@ -11,6 +11,10 @@ type (
 	Coordinate2d Tuple2d[int]
 )
 
+func (lhs Coordinate2d) Equal(rhs Coordinate2d) bool {
+	return lhs.X == rhs.X && lhs.Y == rhs.Y
+}
+
 type Direction rune
 
 func (d Direction) String() string {
@@ -18,10 +22,11 @@ func (d Direction) String() string {
 }
 
 const (
-	North Direction = 'N'
-	South Direction = 'S'
-	West  Direction = 'W'
-	East  Direction = 'E'
+	UndefinedDirection Direction = 'X'
+	North              Direction = 'N'
+	South              Direction = 'S'
+	West               Direction = 'W'
+	East               Direction = 'E'
 )
 
 func (d Direction) AsTranslation() Coordinate2d {
@@ -34,6 +39,25 @@ func (d Direction) AsTranslation() Coordinate2d {
 		return Coordinate2d{X: -1, Y: 0}
 	case East:
 		return Coordinate2d{X: 1, Y: 0}
+	case UndefinedDirection:
+		return Coordinate2d{X: 0, Y: 0}
+	default:
+		panic("unexpected direction")
+	}
+}
+
+func (d Direction) Opposite() Direction {
+	switch d {
+	case North:
+		return South
+	case South:
+		return North
+	case West:
+		return East
+	case East:
+		return West
+	case UndefinedDirection:
+		return UndefinedDirection
 	default:
 		panic("unexpected direction")
 	}
@@ -47,6 +71,18 @@ type Matrix[T any] struct {
 func (m Matrix[T]) Fill(t T) Matrix[T] {
 	out := NewMatrixFromShape[T](m.Shape)
 	out.Fill_(t)
+	return out
+}
+
+func (m Matrix[T]) AsGrid() [][]T {
+	out := make([][]T, 0, m.Shape.Y)
+	for y := 0; y < m.Shape.Y; y++ {
+		row := make([]T, 0, m.Shape.X)
+		for x := 0; x < m.Shape.X; x++ {
+			row = append(row, m.Data[RavelIndex2d(Coordinate2d{X: x, Y: y}, m.Shape)])
+		}
+		out = append(out, row)
+	}
 	return out
 }
 
