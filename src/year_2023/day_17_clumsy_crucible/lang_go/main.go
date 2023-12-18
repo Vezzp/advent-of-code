@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"advent_of_code/jogtrot"
 
 	"github.com/emirpasic/gods/queues/priorityqueue"
@@ -55,7 +53,7 @@ func ReadHeatmapFromFile(filepath string) Heatmap {
 	return out
 }
 
-func SolveFirstPart(filepath string) {
+func Solve(filepath string, minDirectionStepCount int, maxDirectionStepCount int) int {
 	heatmap := ReadHeatmapFromFile(filepath)
 
 	src := jogtrot.Coordinate2d{X: 0, Y: 0}
@@ -81,7 +79,8 @@ func SolveFirstPart(filepath string) {
 			break
 		}
 
-		if currentPriorityState.Coordinate == dst {
+		if currentPriorityState.Coordinate == dst &&
+			currentPriorityState.DirectionStepCount >= minDirectionStepCount {
 			solution = currentPriorityState.HeatLoss
 			break
 		}
@@ -92,7 +91,7 @@ func SolveFirstPart(filepath string) {
 			visited[currentPriorityState.VisitedCell] = struct{}{}
 		}
 
-		if currentPriorityState.DirectionStepCount < 3 &&
+		if currentPriorityState.DirectionStepCount < maxDirectionStepCount &&
 			currentPriorityState.Direction != jogtrot.UndefinedDirection {
 			if nextCoordinate := currentPriorityState.Coordinate.Translate(
 				currentPriorityState.Direction.AsTranslation(),
@@ -108,33 +107,42 @@ func SolveFirstPart(filepath string) {
 			}
 		}
 
-		for _, nextDirection := range []jogtrot.Direction{
-			jogtrot.North, jogtrot.South, jogtrot.West, jogtrot.East,
-		} {
-			if nextDirection == currentPriorityState.Direction ||
-				nextDirection == currentPriorityState.Direction.Opposite() {
-				continue
-			}
-			if nextCoordinate := currentPriorityState.Coordinate.Translate(
-				nextDirection.AsTranslation(),
-			); nextCoordinate.IsWithinBounds(heatmap.Shape) {
-				queue.Enqueue(PriorityState{
-					VisitedCell: VisitedCell{
-						Coordinate:         nextCoordinate,
-						Direction:          nextDirection,
-						DirectionStepCount: 1,
-					},
-					HeatLoss: currentPriorityState.HeatLoss + heatmap.At(nextCoordinate),
-				})
+		if currentPriorityState.Direction == jogtrot.UndefinedDirection ||
+			currentPriorityState.DirectionStepCount >= minDirectionStepCount {
+			for _, nextDirection := range []jogtrot.Direction{
+				jogtrot.North, jogtrot.South, jogtrot.West, jogtrot.East,
+			} {
+				if nextDirection == currentPriorityState.Direction ||
+					nextDirection == currentPriorityState.Direction.Opposite() {
+					continue
+				}
+				if nextCoordinate := currentPriorityState.Coordinate.Translate(
+					nextDirection.AsTranslation(),
+				); nextCoordinate.IsWithinBounds(heatmap.Shape) {
+					queue.Enqueue(PriorityState{
+						VisitedCell: VisitedCell{
+							Coordinate:         nextCoordinate,
+							Direction:          nextDirection,
+							DirectionStepCount: 1,
+						},
+						HeatLoss: currentPriorityState.HeatLoss + heatmap.At(nextCoordinate),
+					})
+				}
 			}
 		}
+
 	}
 
+	return solution
+}
+
+func SolveFirstPart(filepath string) {
+	solution := Solve(filepath, -1, 3)
 	jogtrot.PrintSolution(1, solution)
 }
 
 func SolveSecondPart(filepath string) {
-	solution := fmt.Sprintf("Unimplemented. No solution for %s", filepath)
+	solution := Solve(filepath, 4, 10)
 	jogtrot.PrintSolution(2, solution)
 }
 
