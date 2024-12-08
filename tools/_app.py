@@ -13,28 +13,29 @@ import sys
 import threading
 import unittest
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     ClassVar,
-    Iterable,
     Literal,
     NotRequired,
-    Optional,
     Self,
     TextIO,
     TypeAlias,
     TypedDict,
+    assert_never,
     cast,
     overload,
+    override,
 )
 
 import loguru
 import typer
+
 
 ROOT = Path(__file__).parent.parent
 TEMPLATE_ROOT = ROOT / "tools" / "templates"
@@ -72,7 +73,7 @@ class ParsedPuzzleName:
         r"(?:---\s*Day\s*)?(?P<day>\d+)?:?\s*(?P<name>.+\w)\s*(?:\s+---)?"
     )
 
-    day: Optional[int]
+    day: int | None
     name: str
 
     def __post_init__(self) -> None:
@@ -87,20 +88,17 @@ class ParsedPuzzleName:
                 name: str
 
         if (match := cls.PATTERN.match(__s)) is None:
-            raise RuntimeError(
-                f'Puzzle name "{__s}" does not match {cls.PATTERN.pattern}'
-            )
+            raise RuntimeError(f'Puzzle name "{__s}" does not match {cls.PATTERN.pattern}')
 
         group_dict = cast("GroupDict", match.groupdict())
-        out = cls(
+        return cls(
             day=None if (day := group_dict.get("day")) is None else int(day),
             name=group_dict["name"],
         )
-        return out
 
 
 Part: TypeAlias = Annotated[
-    Optional[int],
+    int | None,
     typer.Option(
         "-p",
         "--part",
@@ -121,20 +119,16 @@ if TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class CompilationCommandMaker(Protocol):
-        def __call__(self, *, entrypoint: Path) -> str:
-            ...
+        def __call__(self, *, entrypoint: Path) -> str: ...
 
     class InferenceCommandMaker(Protocol):
         @overload
-        def __call__(self) -> str:
-            ...
+        def __call__(self) -> str: ...
 
         @overload
-        def __call__(self, *, entrypoint: Path) -> str:
-            ...
+        def __call__(self, *, entrypoint: Path) -> str: ...
 
-        def __call__(self, *, entrypoint: Path | None = None) -> str:
-            ...
+        def __call__(self, *, entrypoint: Path | None = None) -> str: ...
 
 
 @dataclasses.dataclass(slots=True, kw_only=True)
@@ -162,11 +156,12 @@ LANG_TO_SUBCOMMAND_MAKER: dict[Lang, SolutionSubcommandMaker] = {
         compilation=None,
         inference=f"PYTHONPATH={ROOT} python -OO {{entrypoint}}".format,
     ),
-    Lang.GOLANG: SolutionSubcommandMaker(
-        compilation=None, inference="go run {entrypoint}".format
-    ),
+    Lang.GOLANG: SolutionSubcommandMaker(compilation=None, inference="go run {entrypoint}".format),
     Lang.CPP: SolutionSubcommandMaker(
-        compilation=f'clang++ -std=c++2b -I "{ROOT}/.pixi/env/include" -I {ROOT} {{entrypoint}} -o ./a.out'.format,
+        compilation=(
+            f'clang++ -std=c++2b -I "{ROOT}/.pixi/env/include"'
+            f"-I {ROOT} {{entrypoint}} -o ./a.out"
+        ).format,
         inference="./a.out".format,
     ),
 }
@@ -235,14 +230,14 @@ def _patch_command_signature(__w: Callable, /) -> None:
             annotation=field.type,
         )
     new_sig = sig.replace(parameters=tuple(new_parameters.values()))
-    setattr(__w, "__signature__", new_sig)
+    __w.__signature__ = new_sig
 
 
 @command("setup", help="Setup directory and draft template for daily puzzle")
 def setup_handler(
     *,
     ctx: typer.Context,
-    name: Annotated[Optional[str], typer.Option("-n", "--name")] = None,
+    name: Annotated[str | None, typer.Option("-n", "--name")] = None,
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
 
@@ -311,9 +306,7 @@ def test_handler(
     *,
     ctx: typer.Context,
     part: Part = None,
-    suppress_stdout: Annotated[
-        bool, typer.Option("-s/-S", "--stdout/--no-stdout")
-    ] = False,
+    suppress_stdout: Annotated[bool, typer.Option("-s/-S", "--stdout/--no-stdout")] = False,
 ) -> None:
     opts: CommonOpts = getattr(ctx, CommonOpts.ATTRNAME)
     day_root = get_day_root(opts)
@@ -321,18 +314,7 @@ def test_handler(
     parts = resolve_parts(part)
     tests = collect_tests(day_root)
 
-    for lang, lang_root in iter_lang_roots(opts, day_root):
-
-        class TextSubtestTestResult(unittest.TextTestResult):
-            def __init__(self, *args, **kwargs) -> None:
-                super().__init__(*args, **kwargs)
-                # NOTE(vshlenskii): Exclude initial test from countF.
-                self.testsRun = -1
-
-            def addSubTest(self, test, subtest, outcome):
-                super().addSubTest(test, subtest, outcome)
-                self.testsRun += 1
-
+    def make_test_case(lang: Lang, lang_root: Path) -> type[unittest.TestCase]:
         class TestCase(unittest.TestCase):
             def test(self) -> None:
                 for test_idx, test_part, test_case in tests:
@@ -360,13 +342,30 @@ def test_handler(
                             test_case.puzzle,
                             suppress_stdout=suppress_stdout,
                         )[0]
-                        self.assertEqual(solution["answer"], answer)
+                        assert solution["answer"] == answer
 
-        test_runner = unittest.TextTestRunner(
-            stream=sys.stdout,
-            resultclass=TextSubtestTestResult,
+        return TestCase
+
+    class TextSubtestTestResult(unittest.TextTestResult):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            # NOTE(vshlenskii): Exclude initial test from count.
+            self.testsRun = -1
+
+        @override
+        def addSubTest(self, test, subtest, outcome):
+            super().addSubTest(test, subtest, outcome)
+            self.testsRun += 1
+
+    test_runner = unittest.TextTestRunner(
+        stream=sys.stdout,
+        resultclass=TextSubtestTestResult,
+    )
+
+    for lang, lang_root in iter_lang_roots(opts, day_root):
+        test_runner.run(
+            unittest.TestLoader().loadTestsFromTestCase(make_test_case(lang, lang_root))
         )
-        test_runner.run(unittest.makeSuite(TestCase))
 
 
 def get_day_root(opts: CommonOpts, /) -> Path:
@@ -407,7 +406,7 @@ def solve_puzzle(
 ) -> list["ParsedSolution"]:
     entrypoint = root / f"main.{lang.value}"
 
-    parsed_solutions: list["ParsedSolution"] = []
+    parsed_solutions: list[ParsedSolution] = []
     parts = resolve_parts(part)
 
     # https://gist.github.com/nawatts/e2cdca610463200c12eac2a14efc0bfb
@@ -416,7 +415,7 @@ def solve_puzzle(
         if not suppress_stdout:
             sys.stdout.write(line)
         if (match := SOLUTION_RE.match(line)) is None:
-            return None
+            return
 
         parsed_solution = cast("ParsedSolution", match.groupdict())
         parsed_solutions.append(parsed_solution)
@@ -431,9 +430,7 @@ def solve_puzzle(
         subprocess.check_call(compilation_subcommand, shell=True)
         loguru.logger.info("Compiling OK")
 
-    inference_subcommand = subcommand_maker.make_inference_subcommand(
-        entrypoint=entrypoint
-    )
+    inference_subcommand = subcommand_maker.make_inference_subcommand(entrypoint=entrypoint)
     inference_command = f"{inference_subcommand} -i {path!s} -p {part}"
     loguru.logger.info(f"Running inference {inference_command}")
     proc = subprocess.Popen(
@@ -477,7 +474,7 @@ def solve_puzzle(
 
 
 def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
-    idx_to_parsed_test: dict[str, list[tuple["ParsedTest", Path]]] = defaultdict(list)
+    idx_to_parsed_test: dict[str, list[tuple[ParsedTest, Path]]] = defaultdict(list)
 
     for fpath in root.glob("*.txt"):
         if (match := TEST_RE.match(fpath.stem)) is None:
@@ -499,7 +496,7 @@ def collect_tests(root: Path, /) -> list[tuple[str, Literal[1, 2], TestCase]]:
                     case "out":
                         test_case.answer = fpath
                     case _:
-                        raise RuntimeError(f"Test type {test['type']} is not supported")
+                        assert_never(test["type"])
 
     out: list[tuple[str, Literal[1, 2], TestCase]] = sorted(
         (
