@@ -21,9 +21,7 @@ def print_solution(part: Literal[1, 2], solution: Any) -> None:
 def parse_command_line() -> tuple[list[Literal[1, 2]], Path]:
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", help="Puzzle part to solve")
-    parser.add_argument(
-        "-i", help="File with puzzle input", default="./input.txt", required=False
-    )
+    parser.add_argument("-i", help="File with puzzle input", default="./input.txt", required=False)
 
     args = parser.parse_args()
     parts: list[Literal[1, 2]]
