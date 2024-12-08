@@ -23,7 +23,7 @@ go = "1.23.*"
 
 [feature.cxx.dependencies]
 fmt = "*"
-clang = "19.1.*"
+clangxx = "19.1.*"
 
 [environments]
 default = ["python"]
