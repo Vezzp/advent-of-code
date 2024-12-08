@@ -4,20 +4,30 @@ version = "0.1.0"
 description = "Add a short description here"
 authors = ["Vladislav Shlenskii <vladislav.shlenskii@gmail.com>"]
 channels = ["conda-forge"]
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 
 [tasks]
 setup = "python -OO -m tools setup"
 solve = "python -OO -m tools solve"
 test = "python -OO -m tools test"
 
-[dependencies]
+[feature.python.dependencies]
 python = "3.12.*"
-go = "1.21.4.*"
-fmt = ">=10.1.1,<10.2"
-cxx-compiler = ">=1.7.0,<1.8"
-
-[pypi-dependencies]
 typer = "*"
 typing-extensions = "*"
 loguru = "*"
+ruff = "*"
+
+[feature.go.dependencies]
+go = "1.23.*"
+
+[feature.cxx.dependencies]
+fmt = "*"
+clang = "19.1.*"
+
+[environments]
+default = ["python"]
+python = ["python"]
+go = ["python", "go"]
+cxx = ["python", "cxx"]
+all = ["python", "go", "cxx"]
