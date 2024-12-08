@@ -159,8 +159,7 @@ LANG_TO_SUBCOMMAND_MAKER: dict[Lang, SolutionSubcommandMaker] = {
     Lang.GOLANG: SolutionSubcommandMaker(compilation=None, inference="go run {entrypoint}".format),
     Lang.CPP: SolutionSubcommandMaker(
         compilation=(
-            f'clang++ -std=c++2b -I "{ROOT}/.pixi/env/include"'
-            f"-I {ROOT} {{entrypoint}} -o ./a.out"
+            f"pixi run -e cxx clang++ -std=c++26 -I {ROOT} {{entrypoint}} -o ./a.out"
         ).format,
         inference="./a.out".format,
     ),
