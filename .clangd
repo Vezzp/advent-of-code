@@ -1,0 +1,7 @@
+CompileFlags:
+  Compiler: ./.pixi/envs/cxx/bin/clang++
+  Add:
+    - "-std=c++26"
+    - "-I."
+    - "-fexperimental-library"
+    - "-I.pixi/env/cxx/include"
