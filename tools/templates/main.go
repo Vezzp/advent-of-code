@@ -24,6 +24,8 @@ func main() {
 			SolveFirstPart(input)
 		case "2":
 			SolveSecondPart(input)
+		default:
+			panic(fmt.Sprintf("unknown part %s", part))
 		}
 	}
 }

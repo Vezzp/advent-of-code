@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import assert_never
 
 import jogtrot
 
@@ -22,7 +23,7 @@ def main() -> None:
             case 2:
                 solve_second_part(input)
             case _:
-                raise RuntimeError(f"Part {part} is not supported")
+                assert_never(part)
 
 
 if __name__ == "__main__":
