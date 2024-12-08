@@ -2,11 +2,8 @@
 
 #define _JOGTROT_
 
-#include "fmt/core.h"
 #include <concepts>
-#include <exception>
 #include <fstream>
-#include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
@@ -21,9 +18,9 @@ struct CommandLineConfig {
 
 auto
 read_file_rows(std::string_view filepath) -> std::vector<std::string> {
-  std::ifstream file(filepath);
+  std::ifstream file((std::filesystem::path(filepath)));
   if (!file.is_open()) {
-    throw std::runtime_error(fmt::format("Cannot open file {}\n", filepath));
+    throw std::runtime_error(std::format("Cannot open file {}\n", filepath));
   }
 
   std::vector<std::string> rows;
@@ -36,10 +33,10 @@ read_file_rows(std::string_view filepath) -> std::vector<std::string> {
 }
 
 template <typename T>
-requires std::integral<T> || std::is_convertible_v<T, std::string_view>
+  requires std::integral<T> || std::is_convertible_v<T, std::string_view>
 auto
 print_solution(int part, const T solution) -> void {
-  fmt::print("Part {} solution: {}\n", part, solution);
+  std::print("Part {} solution: {}\n", part, solution);
 }
 
 auto
@@ -72,6 +69,6 @@ parse_command_line(std::span<const std::string_view> args) -> CommandLineConfig 
   return CommandLineConfig{parts, std::string{input}};
 }
 
-} // namespace jogtrot
+}  // namespace jogtrot
 
 #endif

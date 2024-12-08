@@ -1,18 +1,16 @@
 // https://stackoverflow.com/a/66946587
 #define FMT_HEADER_ONLY
 
-#include "jogtrot/jogtrot.hpp"
 #include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 #include <optional>
 #include <ranges>
 #include <sstream>
 #include <string_view>
-#include <vector>
+
+#include "jogtrot/jogtrot.hpp"
 
 struct QuadricEquation {
   std::int64_t a = 0;
@@ -29,7 +27,7 @@ struct QuadricEquation {
     auto discriminant = std::sqrt(squared_discriminant);
     return std::minmax((-b - discriminant) / (2 * a), (-b + discriminant) / (2 * a));
   }
-}; // namespace QuadricEquation
+};  // namespace QuadricEquation
 
 struct Race {
   std::int64_t time = 0;
@@ -65,7 +63,6 @@ parse_races_from_file(std::string_view filepath) -> std::vector<Race> {
   std::vector<Race> races{};
   for (auto [time_c, distance_c] :
        std::views::zip(split_row(std::move(rows[0])), split_row(std::move(rows[1])))) {
-
     int time{};
     std::from_chars(time_c.begin(), time_c.end(), time);
 
@@ -95,9 +92,7 @@ parse_race_from_file_with_broken_kerning(std::string_view filepath) -> Race {
 
   std::int64_t distance{};
   const auto distances_s = distances_ss.str();
-  std::from_chars(
-      distances_s.data(), distances_s.data() + distances_s.size(), distance
-  );
+  std::from_chars(distances_s.data(), distances_s.data() + distances_s.size(), distance);
 
   return Race{.time = time, .distance = distance};
 }
@@ -140,8 +135,7 @@ solve_second_part(std::string_view filepath) -> void {
 auto
 main(const int argc, const char* argv[]) -> int {
   const std::vector<std::string_view> args(
-      argv, std::next(argv, static_cast<ptrdiff_t>(argc))
-  );
+      argv, std::next(argv, static_cast<ptrdiff_t>(argc)));
 
   const auto config = jogtrot::parse_command_line(args);
 

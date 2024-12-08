@@ -1,14 +1,13 @@
 // https://stackoverflow.com/a/66946587
 #define FMT_HEADER_ONLY
 
-#include "fmt/ranges.h"
-#include "jogtrot/jogtrot.hpp"
 #include <cctype>
-#include <span>
 #include <sstream>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#include "jogtrot/jogtrot.hpp"
 
 const std::unordered_map<std::string_view, std::string_view> SPELL_TO_DIGIT = {
     {"one", "1"},
@@ -86,8 +85,7 @@ solve_second_part(std::string_view filepath) -> void {
 auto
 main(const int argc, const char* argv[]) -> int {
   const std::vector<std::string_view> args(
-      argv, std::next(argv, static_cast<ptrdiff_t>(argc))
-  );
+      argv, std::next(argv, static_cast<ptrdiff_t>(argc)));
 
   const auto config = jogtrot::parse_command_line(args);
 
