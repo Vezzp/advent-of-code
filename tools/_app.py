@@ -341,7 +341,7 @@ def test_handler(
                             test_case.puzzle,
                             suppress_stdout=suppress_stdout,
                         )[0]
-                        assert solution["answer"] == answer
+                        self.assertEqual(solution["answer"], answer)  # noqa: PT009
 
         return TestCase
 
