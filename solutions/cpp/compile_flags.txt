@@ -1,0 +1,4 @@
+-I.
+-std=c++26
+-fexperimental-library
+-fuse-ld=lld

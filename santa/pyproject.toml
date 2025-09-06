@@ -1,0 +1,11 @@
+[project]
+name = "santa"
+version = "2024.0"
+description = "Helper Advent of Code"
+requires-python = "== 3.13"
+
+[tool.pyright]
+typeCheckingMode = "basic"
+
+[tool.ruff]
+line-length = 100

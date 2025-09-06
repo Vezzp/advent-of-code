@@ -1,0 +1,8 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).absolute().parent.parent
+
+SOLUTIONS_ROOT = ROOT / "solutions"
+
+PRESENTS_ROOT = ROOT / "presents"
