@@ -86,9 +86,9 @@ def command(*command_args, **command_kwargs):
             assert len(args) == 0, "Passed arguments must be kwargs only"
 
             ctx = kwargs.pop("ctx", ...)
-            assert isinstance(
-                ctx, typer.Context | click.Context
-            ), f"Passed kwargs must contain typer context: {kwargs}"
+            assert isinstance(ctx, typer.Context | click.Context), (
+                f"Passed kwargs must contain typer context: {kwargs}"
+            )
 
             opts = CommonOpts(
                 **{field.name: kwargs.pop(field.name) for field in dataclasses.fields(CommonOpts)}
