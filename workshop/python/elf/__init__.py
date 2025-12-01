@@ -1,6 +1,20 @@
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
-from typing import Any, Literal
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any, Literal
+    from _typeshed import SupportsDunderLT
+
+
+def cmp(lhs: SupportsDunderLT, rhs: SupportsDunderLT, /) -> Literal[-1, 0, 1]:
+    if lhs < rhs:
+        return -1
+    if rhs < lhs:
+        return 1
+    return 0
 
 
 def read_file_rows(path: Path, /) -> list[str]:

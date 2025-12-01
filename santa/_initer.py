@@ -1,10 +1,9 @@
 import shutil
-from pathlib import Path
 
 import typer
 from loguru import logger
 
-from ._langs import LANG_TO_FILE_EXT, Lang
+from ._langs import LANG_TO_FILE_EXT
 from ._typer import CommonOpts
 from ._utils import get_daily_present_root, get_daily_solution_root, get_elf_root, get_template_path
 
