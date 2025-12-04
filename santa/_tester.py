@@ -9,10 +9,9 @@ from typing import Literal, NotRequired, TypedDict, assert_never, cast, override
 
 import typer
 
-from ._langs import LANG_TO_COMMAND
 from ._solver import solve_puzzle
 from ._typer import CommonOpts, Part
-from ._utils import get_daily_entrypoint, get_daily_present_root, resolve_parts
+from ._utils import get_daily_present_root, resolve_parts
 
 TEST_RE = re.compile(r"test_(?:p(?P<part>1|2)_)?n(?P<idx>\d+)_(?P<type>in|out)")
 
@@ -46,7 +45,6 @@ def test_handler(
 
         class TestCase(unittest.TestCase):
             def test(self) -> None:
-                command = LANG_TO_COMMAND[opts.lang]
                 for test_idx, test_part, test_case in tests:
                     if test_part not in parts:
                         continue
@@ -66,12 +64,11 @@ def test_handler(
 
                     with self.subTest(f"{test_idx = } {test_part = }"):
                         solution = solve_puzzle(
-                            command=command,
-                            input_path=test_case.puzzle,
-                            main_path=get_daily_entrypoint(
-                                lang=opts.lang, year=opts.year, day=opts.day
-                            ),
+                            lang=opts.lang,
+                            year=opts.year,
+                            day=opts.day,
                             part=test_part,
+                            input_path=test_case.puzzle,
                         )[0]
                         self.assertEqual(solution["answer"], answer)  # noqa: PT009
 

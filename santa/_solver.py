@@ -1,5 +1,4 @@
 import _thread
-import os
 import re
 import selectors
 import subprocess
@@ -11,9 +10,10 @@ from typing import Literal, TextIO, TypedDict, cast
 import loguru
 import typer
 
-from ._langs import LANG_TO_COMMAND, Command
+from ._langs import Lang
+from ._commands import LANG_TO_COMMAND
 from ._typer import CommonOpts, Part
-from ._utils import get_daily_entrypoint, get_daily_present_root, get_lang_path, resolve_parts
+from ._utils import get_daily_present_root, resolve_parts
 
 
 class ParsedSolution(TypedDict):
@@ -27,26 +27,25 @@ SOLUTION_RE = re.compile(r"Part (?P<part>1|2) solution: (?P<answer>\w+)")
 def solve_handler(*, ctx: typer.Context, part: Part = None) -> None:
     opts = getattr(ctx, CommonOpts.ATTRNAME, ...)
     assert isinstance(opts, CommonOpts), f"Typer context does not contain expected options: {opts}"
-
     solve_puzzle(
-        command=LANG_TO_COMMAND[opts.lang],
-        input_path=get_daily_present_root(year=opts.year, day=opts.day) / "input.txt",
-        main_path=get_daily_entrypoint(lang=opts.lang, year=opts.year, day=opts.day),
+        lang=opts.lang,
+        year=opts.year,
+        day=opts.day,
         part=part,
+        input_path=get_daily_present_root(year=opts.year, day=opts.day) / "input.txt",
     )
 
 
 def solve_puzzle(
     *,
-    command: Command,
-    main_path: Path,
+    lang: Lang,
+    year: int,
+    day: int,
+    part: int | None = None,
     input_path: Path,
-    part: int | None,
     suppress_stdout: bool = False,
 ) -> list[ParsedSolution]:
     parsed_solutions: list[ParsedSolution] = []
-
-    cwd = get_lang_path(command.lang)
 
     # https://gist.github.com/nawatts/e2cdca610463200c12eac2a14efc0bfb
     def stdout_handler(stream: TextIO) -> None:
@@ -58,26 +57,31 @@ def solve_puzzle(
         parsed_solution = cast(ParsedSolution, match.groupdict())
         parsed_solutions.append(parsed_solution)
 
-    if command.build_parts:
-        build_args = command.resolve_build_args(main_path)
+    command = LANG_TO_COMMAND[lang]
+    if command.build_popen_opts_ctor is not None:
+        build_popen_opts = command.resolve_build_popen_opts(year=year, day=day)
         loguru.logger.info("Building ...")
-        loguru.logger.info(build_args)
-        subprocess.check_call(build_args, env=os.environ | (command.build_envs or {}), cwd=cwd)
+        loguru.logger.info(build_popen_opts["cmd"])
+        subprocess.check_call(
+            build_popen_opts["cmd"],
+            env=build_popen_opts["env"],
+            cwd=build_popen_opts["cwd"],
+        )
         loguru.logger.info("Build OK")
 
-    inference_args = command.resolve_inference_args(
-        main_path=main_path, input_path=input_path, part=part
+    solve_popen_opts = command.resolve_solve_popen_opts(
+        year=year, day=day, part=part, input_path=input_path
     )
     loguru.logger.info("Running inference ...")
-    loguru.logger.info(inference_args)
+    loguru.logger.info(solve_popen_opts["cmd"])
     proc = subprocess.Popen(
-        inference_args,
+        solve_popen_opts["cmd"],
         bufsize=1,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
-        env=(command.solve_envs or {}) | os.environ,
-        cwd=cwd,
+        env=solve_popen_opts["env"],
+        cwd=solve_popen_opts["cwd"],
     )
 
     selector = selectors.DefaultSelector()
@@ -106,7 +110,7 @@ def solve_puzzle(
         selector.close()
         raise subprocess.CalledProcessError(
             return_code,
-            inference_args,
+            solve_popen_opts["cmd"],
             stderr=str(proc.stderr),
         )
 

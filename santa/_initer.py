@@ -1,16 +1,18 @@
 import shutil
+from typing import Annotated
 
 import typer
 from loguru import logger
 
-from ._langs import LANG_TO_FILE_EXT
+from ._commands import LANG_TO_COMMAND
 from ._typer import CommonOpts
-from ._utils import get_daily_present_root, get_daily_solution_root, get_elf_root, get_template_path
+from ._utils import get_daily_present_root, get_daily_solution_root, get_elf_root
 
 
 def init_handler(
     *,
     ctx: typer.Context,
+    force: Annotated[bool, typer.Option(help="Force day directory initialization")] = False,
 ) -> None:
     opts = getattr(ctx, CommonOpts.ATTRNAME, ...)
     assert isinstance(opts, CommonOpts), f"Typer context does not contain expected options: {opts}"
@@ -36,13 +38,11 @@ def init_handler(
         logger.info(f"Initialized daily present root: {present_root}")
 
     solution_root = get_daily_solution_root(lang=opts.lang, year=opts.year, day=opts.day)
-    if solution_root.exists():
-        logger.info(f"Daily solution root was already initialized: {solution_root}")
+    if solution_root.exists() and not force:
+        logger.info(
+            f"Daily solution root was already initialized: {solution_root}. Use --force to force recreate"
+        )
     else:
-        solution_template_path = get_template_path(opts.lang)
-        if not solution_template_path.exists():
-            raise FileExistsError(f"Template path not found: {solution_template_path}")
-
-        solution_root.mkdir(parents=True)
-        shutil.copy(solution_template_path, solution_root / f"main{LANG_TO_FILE_EXT[opts.lang]}")
+        shutil.rmtree(solution_root, ignore_errors=True)  # noqa: F821
+        solution_root = LANG_TO_COMMAND[opts.lang].day_initializer(year=opts.year, day=opts.day)
         logger.info(f"Initialized daily solution root: {solution_root}")
