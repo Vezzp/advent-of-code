@@ -1,4 +1,4 @@
-[project]
+[workspace]
 authors = ["Vladislav Shlenskii <vhollav@gmail.com>"]
 channels = ["conda-forge"]
 description = "Advent of Code Solutions"
@@ -11,8 +11,9 @@ santa = { description = "Let Santa work", cmd = "pixi run python -m santa" }
 
 [feature.python.dependencies]
 python = "3.13.*"
-typer = ">=0.19,<0.20"
+typer = ">=0.20,<0.21"
 loguru = ">=0.7.2,<0.8"
+tomli-w = "*"
 uv = "*"
 
 [feature.go.dependencies]
@@ -23,9 +24,14 @@ clangxx = "20.*"
 libcxx = "20.*"
 lld = "20.*"
 
+[feature.rust.dependencies]
+rust = ">=1.90.0,<1.91.0"
+rust-src = "*"
+
 [environments]
 default = ["python"]
 python = ["python"]
 go = ["python", "go"]
 cpp = ["python", "cpp"]
-all = ["python", "go", "cpp"]
+rust = ["python", "rust"]
+all = ["python", "go", "cpp", "rust"]
