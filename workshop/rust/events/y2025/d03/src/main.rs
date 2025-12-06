@@ -1,57 +1,51 @@
-use std::{cmp::Reverse, path::Path};
+use std::cmp::Reverse;
 
 use elf;
 
-fn solve<P>(path: P, n_batteries: usize) -> i64
+fn count_total_battaries_joltage<E>(lines: &[E], n_batteries: usize) -> i64
 where
-    P: AsRef<Path>,
+    E: AsRef<str>,
 {
-    elf::read_file_rows(&path)
+    lines
         .iter()
+        .map(AsRef::as_ref)
         .map(|line| {
             assert!(line.is_ascii());
+            let mut joltage = 0i64;
 
-            let (_, joltage) =
-                (0..n_batteries)
-                    .rev()
-                    .fold((0usize, 0i64), |(start_pos, joltage), magnitude| {
-                        let digit_pos = (start_pos..line.len() - magnitude)
-                            .min_by_key(|&pos| Reverse(line.as_bytes()[pos]))
-                            .expect("Non-empty search slice");
-                        let digit = (line.as_bytes()[digit_pos] - b'0') as i64;
+            let _ = (0..n_batteries)
+                .rev()
+                .fold(0usize, |search_range_start, magnitude| {
+                    let digit_idx = (search_range_start..line.len() - magnitude)
+                        .min_by_key(|&idx| Reverse(line.as_bytes()[idx]))
+                        .expect("Non-empty search slice");
 
-                        (digit_pos + 1, joltage + 10i64.pow(magnitude as u32) * digit)
-                    });
+                    joltage +=
+                        10i64.pow(magnitude as u32) * i64::from(line.as_bytes()[digit_idx] - b'0');
+
+                    digit_idx + 1
+                });
 
             joltage
         })
         .sum()
 }
 
-fn solve_first_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution = solve(&path, 2);
-    elf::print_solution(1, &solution);
+fn solve_part_1<E: AsRef<str>>(lines: &[E]) -> String {
+    count_total_battaries_joltage(lines, 2).to_string()
 }
 
-fn solve_second_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution = solve(&path, 12);
-    elf::print_solution(2, &solution);
+fn solve_part_2<E: AsRef<str>>(lines: &[E]) -> String {
+    count_total_battaries_joltage(lines, 12).to_string()
 }
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    let config =
-        elf::CommandLineConfig::from_args(&args.iter().map(String::as_str).collect::<Vec<_>>());
+    let config = elf::CommandLineConfig::from_args(&std::env::args().collect::<Vec<_>>());
+    let lines = elf::read_file_lines(&config.input_path);
     for part in config.parts {
         match part {
-            1 => solve_first_part(&config.input_path),
-            2 => solve_second_part(&config.input_path),
+            1 => elf::print_solution(part, solve_part_1(&lines)),
+            2 => elf::print_solution(part, solve_part_2(&lines)),
             _ => unreachable!(),
         }
     }

@@ -1,31 +1,22 @@
-use std::path::Path;
-
 use elf;
 
-fn solve_first_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution = format!("Unimplemented. No solution for {:?}", path.as_ref());
-    elf::print_solution(1, &solution);
+fn solve_part_1<E: AsRef<str>>(lines: &[E]) -> String {
+    _ = lines;
+    "Unimplemented".to_string()
 }
 
-fn solve_second_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution = format!("Unimplemented. No solution for {:?}", path.as_ref());
-    elf::print_solution(2, &solution);
+fn solve_part_2<E: AsRef<str>>(lines: &[E]) -> String {
+    _ = lines;
+    "Unimplemented".to_string()
 }
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    let config =
-        elf::CommandLineConfig::from_args(&args.iter().map(String::as_str).collect::<Vec<_>>());
+    let config = elf::CommandLineConfig::from_args(&std::env::args().collect::<Vec<_>>());
+    let lines = elf::read_file_lines(&config.input_path);
     for part in config.parts {
         match part {
-            1 => solve_first_part(&config.input_path),
-            2 => solve_second_part(&config.input_path),
+            1 => elf::print_solution(part, solve_part_1(&lines)),
+            2 => elf::print_solution(part, solve_part_2(&lines)),
             _ => unreachable!(),
         }
     }

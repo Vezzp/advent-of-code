@@ -1,13 +1,32 @@
-use std::path::Path;
-
 use elf;
 
-fn solve<P, V>(path: P, invalid_id_checker: V) -> i64
+fn solve_part_1<E: AsRef<str>>(lines: &[E]) -> String {
+    return count_invalid_ids(lines, check_invalid_id).to_string();
+
+    fn check_invalid_id(id: i64) -> bool {
+        let candidate_id = id.to_string();
+        check_string_k_repeatable(candidate_id.as_str(), candidate_id.len() / 2)
+    }
+}
+
+fn solve_part_2<E: AsRef<str>>(lines: &[E]) -> String {
+    return count_invalid_ids(lines, check_invalid_id).to_string();
+
+    fn check_invalid_id(id: i64) -> bool {
+        let id = id.to_string();
+        (1..=id.len() / 2)
+            .map(|k| check_string_k_repeatable(id.as_str(), k))
+            .any(std::convert::identity)
+    }
+}
+
+fn count_invalid_ids<E, V>(lines: &[E], invalid_id_checker: V) -> i64
 where
-    P: AsRef<Path>,
+    E: AsRef<str>,
     V: Fn(i64) -> bool,
 {
-    elf::read_file_rows(&path)[0]
+    lines[0]
+        .as_ref()
         .split(",")
         .map(|range| {
             let (lhs, rhs) = range
@@ -17,45 +36,18 @@ where
             let rhs = rhs.parse::<i64>().expect("Cannot parse range rhs");
             assert!(lhs <= rhs, "Range lhs {lhs} is greater than rhs = {rhs}");
 
-            (lhs..=rhs).fold(0i64, |acc, id| acc + id * invalid_id_checker(id) as i64)
+            (lhs..=rhs).fold(0i64, |acc, id| acc + id * i64::from(invalid_id_checker(id)))
         })
         .sum()
 }
 
-fn solve_first_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution: i64 = solve(&path, check_id_invalid);
-    elf::print_solution(1, &solution);
-
-    fn check_id_invalid(id: i64) -> bool {
-        let candidate_id = id.to_string();
-        check_id_k_invalid(candidate_id.as_str(), 2)
-    }
-}
-
-fn solve_second_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let solution: i64 = solve(&path, check_id_invalid);
-    elf::print_solution(2, &solution);
-
-    fn check_id_invalid(id: i64) -> bool {
-        let id = id.to_string();
-        (1..=id.len() / 2)
-            .map(|k| check_id_k_invalid(id.as_str(), k))
-            .any(std::convert::identity)
-    }
-}
-
-fn check_id_k_invalid(id: &str, k: usize) -> bool {
+fn check_string_k_repeatable(s: &str, k: usize) -> bool {
     const WINDOW_SIZE: usize = 3;
 
-    let size = id.len();
-    (size % k == 0)
-        && (0..=size)
+    (k != 0)
+        && (s.len() / k != 0)
+        && (s.len() % k == 0)
+        && (0..=s.len())
             .step_by(k)
             .collect::<Vec<_>>()
             .windows(WINDOW_SIZE)
@@ -63,19 +55,18 @@ fn check_id_k_invalid(id: &str, k: usize) -> bool {
                 let [lhs, mhs, rhs]: [usize; WINDOW_SIZE] = window
                     .try_into()
                     .expect("Cannot cast window to {WINDOW_SIZE}-tuple");
-                id[lhs..mhs] == id[mhs..rhs]
+                s[lhs..mhs] == s[mhs..rhs]
             })
             .all(std::convert::identity)
 }
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    let config =
-        elf::CommandLineConfig::from_args(&args.iter().map(String::as_str).collect::<Vec<_>>());
+    let config = elf::CommandLineConfig::from_args(&std::env::args().collect::<Vec<_>>());
+    let lines = elf::read_file_lines(&config.input_path);
     for part in config.parts {
         match part {
-            1 => solve_first_part(&config.input_path),
-            2 => solve_second_part(&config.input_path),
+            1 => elf::print_solution(part, solve_part_1(&lines)),
+            2 => elf::print_solution(part, solve_part_2(&lines)),
             _ => unreachable!(),
         }
     }

@@ -9,12 +9,13 @@ pub struct CommandLineConfig {
 }
 
 impl CommandLineConfig {
-    pub fn from_args(args: &[&str]) -> Self {
+    pub fn from_args<A: AsRef<str>>(args: &[A]) -> Self {
         let mut maybe_part: Option<&str> = None;
         let mut maybe_input: Option<&str> = None;
 
         for window in args.windows(2) {
-            match *window {
+            let [key, val] = window else { unreachable!() };
+            match [key.as_ref(), val.as_ref()] {
                 ["-p", part] => maybe_part = Some(part),
                 ["-i", input] => maybe_input = Some(input),
                 _ => (),
@@ -31,10 +32,7 @@ impl CommandLineConfig {
     }
 }
 
-pub fn read_file_rows<P>(path: P) -> Vec<String>
-where
-    P: AsRef<Path>,
-{
+pub fn read_file_lines<P: AsRef<Path>>(path: P) -> Vec<String> {
     std::fs::read_to_string(&path)
         .expect("Unable to read file")
         .lines()
@@ -42,9 +40,6 @@ where
         .collect()
 }
 
-pub fn print_solution<T>(part: i32, solution: T) -> ()
-where
-    T: Display,
-{
+pub fn print_solution<T: Display>(part: i32, solution: T) -> () {
     println!("Part {} solution: {}", part, solution);
 }

@@ -1,21 +1,22 @@
-use std::{
-    ops::{Add, Div},
-    path::Path,
-};
-
 use elf;
 
 #[derive(Debug)]
 enum Rotation {
-    Left(i32),
-    Right(i32),
+    L(i32),
+    R(i32),
 }
 
 impl Rotation {
-    fn angle(&self) -> i32 {
+    fn value(&self) -> i32 {
         match *self {
-            Rotation::Left(angle) => angle,
-            Rotation::Right(angle) => angle,
+            Rotation::L(value) | Rotation::R(value) => value,
+        }
+    }
+
+    fn sign(&self) -> i32 {
+        match *self {
+            Rotation::L(_) => -1,
+            Rotation::R(_) => 1,
         }
     }
 }
@@ -24,20 +25,12 @@ impl TryFrom<&str> for Rotation {
     type Error = &'static str;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        let angle: i32 = s[1..].parse().map_err(|_| "cannot parse int")?;
-        match &s[0..1] {
-            "L" => Ok(Rotation::Left(angle)),
-            "R" => Ok(Rotation::Right(angle)),
-            _ => Err("cannot parse rotation direction"),
-        }
-    }
-}
-
-impl From<&Rotation> for i32 {
-    fn from(rotation: &Rotation) -> i32 {
-        match *rotation {
-            Rotation::Left(angle) => -angle,
-            Rotation::Right(angle) => angle,
+        let (direction, value) = s.split_at(1);
+        let value = value.parse::<i32>().expect("Cannot parse angle");
+        match direction {
+            "L" => Ok(Rotation::L(value)),
+            "R" => Ok(Rotation::R(value)),
+            _ => Err("Invalid rotation direction"),
         }
     }
 }
@@ -59,57 +52,53 @@ impl Default for Dial {
 
 impl Dial {
     fn rotate(&mut self, rotation: &Rotation) {
-        self.position = (self.position + i32::from(rotation)).rem_euclid(self.size);
-    }
-
-    fn rotate_with_clicks(&mut self, rotation: &Rotation) -> i32 {
-        let n_cliks = match rotation {
-            Rotation::Right(_) => self.position,
-            Rotation::Left(_) => (self.size - self.position) % self.size,
-        }
-        .add(rotation.angle())
-        .div(self.size);
-        self.rotate(rotation);
-        n_cliks
+        self.position = (self.position + rotation.value() * rotation.sign()).rem_euclid(self.size);
     }
 }
 
-fn solve_first_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let mut solution: i32 = 0;
+fn solve_part_1<E: AsRef<str>>(lines: &[E]) -> String {
     let mut dial = Dial::default();
-    for line in elf::read_file_rows(&path) {
-        let rotation = Rotation::try_from(line.as_str()).expect("Cannot parse rotation");
-        dial.rotate(&rotation);
-        solution += (dial.position == 0) as i32;
-    }
-    elf::print_solution(1, &solution);
+    lines
+        .iter()
+        .map(|line| {
+            let rotation = Rotation::try_from(line.as_ref()).expect("Cannot parse rotation");
+            dial.rotate(&rotation);
+            i32::from(dial.position == 0)
+        })
+        .sum::<i32>()
+        .to_string()
 }
 
-fn solve_second_part<P>(path: P) -> ()
-where
-    P: AsRef<Path>,
-{
-    let mut solution: i32 = 0;
+fn solve_part_2<E: AsRef<str>>(lines: &[E]) -> String {
     let mut dial = Dial::default();
-    for line in elf::read_file_rows(&path) {
-        let rotation = Rotation::try_from(line.as_str()).expect("Cannot parse rotation");
-        let n_clicks = dial.rotate_with_clicks(&rotation);
-        solution += n_clicks;
-    }
-    elf::print_solution(2, &solution);
+    lines
+        .iter()
+        .map(|line| {
+            let rotation = Rotation::try_from(line.as_ref()).expect("Cannot parse rotation");
+
+            let n_clicks = {
+                let right_rotatible_position = match &rotation {
+                    Rotation::R(_) => dial.position,
+                    Rotation::L(_) => (dial.size - dial.position) % dial.size,
+                };
+                (right_rotatible_position + rotation.value()) / dial.size
+            };
+
+            dial.rotate(&rotation);
+
+            n_clicks
+        })
+        .sum::<i32>()
+        .to_string()
 }
 
 fn main() {
-    let args = std::env::args().collect::<Vec<_>>();
-    let config =
-        elf::CommandLineConfig::from_args(&args.iter().map(String::as_str).collect::<Vec<_>>());
+    let config = elf::CommandLineConfig::from_args(&std::env::args().collect::<Vec<_>>());
+    let lines = elf::read_file_lines(&config.input_path);
     for part in config.parts {
         match part {
-            1 => solve_first_part(&config.input_path),
-            2 => solve_second_part(&config.input_path),
+            1 => elf::print_solution(part, solve_part_1(&lines)),
+            2 => elf::print_solution(part, solve_part_2(&lines)),
             _ => unreachable!(),
         }
     }
